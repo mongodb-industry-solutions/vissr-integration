@@ -1,0 +1,9 @@
+## Add all your env variables to match the ones defined in .env.local
+envSecrets:
+  MONGODB_URI: demo-name # TODO: Update with your demo-name to match helm secret group
+  DATABASE_NAME: demo-name # TODO: Update with your demo-name to match helm secret group
+## Uncomment the below lines to enable Kanopy access to AWS services
+# serviceAccount:
+#   enabled: true
+#   create: false
+#   name: irsa
