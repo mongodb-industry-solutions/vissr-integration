@@ -258,6 +258,27 @@ import { Select, Option } from '@leafygreen-ui/select';
 </Select>
 ```
 
+### Combobox
+
+```jsx
+import { Combobox, ComboboxOption } from "@leafygreen-ui/combobox";
+
+<Combobox
+  multiselect={false}
+  label="Choose a fruit"
+  description="Please pick one"
+  placeholder="Select fruit"
+  onChange={handleChange}
+  value={selection}
+  onClear={() => console.log("clear")}
+>
+  <ComboboxOption value="apple" />
+  <ComboboxOption value="banana" />
+  <ComboboxOption value="carrot" />
+  <ComboboxOption value="dragon" />
+</Combobox>;
+```
+
 ### Toggle
 
 ```jsx

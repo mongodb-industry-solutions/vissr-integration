@@ -1,15 +1,18 @@
 import "./globals.css";
+import { Providers } from "./providers";
 
-// TODO: Update metadata with actual demo details
 export const metadata = {
-  title: "Demo Template",
-  description: "Industry Solutions Demo Template for NextJS",
+  title: "VISS WebSocket Client",
+  description:
+    "WebSocket client for connecting to VISS (Vehicle Information Service Specification) servers and sending vehicle data commands",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
