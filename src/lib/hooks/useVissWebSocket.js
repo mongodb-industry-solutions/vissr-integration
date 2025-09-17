@@ -298,11 +298,12 @@ export default function useVissWebSocket() {
     sendCommand,
     clearMessages,
     setHost,
+    unsubscribeFromId,
 
     // Command builders
     buildGetCommand,
     buildSubscribeCommand,
     buildSetCommand,
-    unsubscribeFromId,
+    buildUnsubscribeCommand,
   };
 }
