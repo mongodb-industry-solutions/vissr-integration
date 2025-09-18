@@ -1,10 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import { H3, Body } from "@leafygreen-ui/typography";
+import { Body } from "@leafygreen-ui/typography";
 import Button from "@leafygreen-ui/button";
 import TextInput from "@leafygreen-ui/text-input";
 import Icon from "@leafygreen-ui/icon";
+import IconButton from "@leafygreen-ui/icon-button";
+import Modal from "@leafygreen-ui/modal";
 
 /**
  * ConnectionManager
@@ -21,17 +23,17 @@ export default function ConnectionManager({
   onDisconnect,
   onSetHost,
 }) {
-  const [showHostConfig, setShowHostConfig] = useState(false);
+  const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [hostInput, setHostInput] = useState("");
 
   const handleOpenConfig = () => {
     setHostInput(hostIP);
-    setShowHostConfig(true);
+    setIsConfigOpen(true);
   };
 
   const handleSaveHost = () => {
     onSetHost?.(hostInput);
-    setShowHostConfig(false);
+    setIsConfigOpen(false);
   };
 
   const handleConnect = () => {
@@ -39,43 +41,36 @@ export default function ConnectionManager({
   };
 
   return (
-    <div className="flex-shrink-0">
-      <div className="flex items-center justify-between mb-4">
-        <H3>Connection</H3>
-        <div className="flex gap-2">
-          {!showHostConfig && (
-            <Button
-              size="small"
-              variant="default"
-              onClick={handleOpenConfig}
-              leftGlyph={<Icon glyph="Settings" />}
-            >
-              Config
-            </Button>
-          )}
-          {!isConnected ? (
-            <Button
-              variant="primary"
-              onClick={handleConnect}
-              disabled={isConnecting}
-              leftGlyph={isConnecting ? undefined : <Icon glyph="Connect" />}
-            >
-              {isConnecting ? "Connecting..." : "Connect"}
-            </Button>
-          ) : (
-            <Button
-              variant="default"
-              onClick={onDisconnect}
-              leftGlyph={<Icon glyph="Disconnect" />}
-            >
-              Disconnect
-            </Button>
-          )}
-        </div>
+    <div className="flex flex-col items-end">
+      <div className="flex items-center gap-2">
+        {!isConnected ? (
+          <Button
+            variant="primary"
+            onClick={handleConnect}
+            disabled={isConnecting}
+          >
+            {isConnecting ? "Connecting..." : "Connect"}
+          </Button>
+        ) : (
+          <Button variant="default" onClick={onDisconnect}>
+            Disconnect
+          </Button>
+        )}
+        <IconButton aria-label="Configure host" onClick={handleOpenConfig}>
+          <Icon glyph="Settings" />
+        </IconButton>
       </div>
 
-      {showHostConfig && (
-        <div className="space-y-3">
+      <Body className="text-sm text-gray-600 mt-1">
+        Host: {hostIP}:8080 (VISS-noenc)
+      </Body>
+
+      <Modal
+        open={isConfigOpen}
+        setOpen={setIsConfigOpen}
+        title="Configure Host"
+      >
+        <div className="p-4 space-y-3">
           <TextInput
             label="Host IP Address"
             placeholder="127.0.0.1"
@@ -84,26 +79,14 @@ export default function ConnectionManager({
             errorMessage={connectionError}
             state={connectionError ? "error" : "none"}
           />
-          <div className="flex gap-2">
-            <Button size="small" onClick={handleSaveHost}>
-              Save
-            </Button>
-            <Button
-              size="small"
-              variant="default"
-              onClick={() => setShowHostConfig(false)}
-            >
+          <div className="flex justify-end gap-2">
+            <Button variant="default" onClick={() => setIsConfigOpen(false)}>
               Cancel
             </Button>
+            <Button onClick={handleSaveHost}>Save</Button>
           </div>
         </div>
-      )}
-
-      {!showHostConfig && (
-        <Body className="text-sm text-gray-600">
-          Host: {hostIP}:8080 (VISS-noenc)
-        </Body>
-      )}
+      </Modal>
     </div>
   );
 }

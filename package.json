@@ -13,6 +13,7 @@
   "dependencies": {
     "@leafygreen-ui/button": "^23.1.6",
     "@leafygreen-ui/icon": "^13.4.0",
+    "@leafygreen-ui/icon-button": "16.0.12",
     "@leafygreen-ui/leafygreen-provider": "^4.0.7",
     "@leafygreen-ui/modal": "^17.1.7",
     "@leafygreen-ui/palette": "^5.0.1",
@@ -25,6 +26,8 @@
     "@leafygreen-ui/badge": "^9.0.10",
     "@leafygreen-ui/combobox": "^11.0.19",
     "@leafygreen-ui/radio-box-group": "^14.0.10",
+    "@leafygreen-ui/toggle": "^11.0.10",
+    "@leafygreen-ui/select": "^14.1.8",
     "dotenv": "^17.2.2",
     "mongodb": "^6.19.0",
     "next": "15.5.2",

@@ -171,8 +171,11 @@ export default function useVissWebSocket() {
     const command = {
       action: "get",
       path: path,
-      requestId: Date.now().toString(),
     };
+
+    if (options.includeRequestId !== false) {
+      command.requestId = Date.now().toString();
+    }
 
     if (options.filter) command.filter = options.filter;
     if (options.authorization) command.authorization = options.authorization;
@@ -196,8 +199,11 @@ export default function useVissWebSocket() {
         variant: "timebased",
         parameter: { period: "10000" },
       },
-      requestId: Date.now().toString(),
     };
+
+    if (options.includeRequestId !== false) {
+      command.requestId = Date.now().toString();
+    }
 
     if (options.authorization) command.authorization = options.authorization;
     if (options.dc) command.dc = options.dc;
@@ -210,13 +216,21 @@ export default function useVissWebSocket() {
    * @param {string} subscriptionId - Subscription ID to unsubscribe
    * @returns {Object} VISS command object
    */
-  const buildUnsubscribeCommand = useCallback((subscriptionId) => {
-    return {
-      action: "unsubscribe",
-      subscriptionId: subscriptionId,
-      requestId: Date.now().toString(),
-    };
-  }, []);
+  const buildUnsubscribeCommand = useCallback(
+    (subscriptionId, options = {}) => {
+      const command = {
+        action: "unsubscribe",
+        subscriptionId: subscriptionId,
+      };
+
+      if (options.includeRequestId !== false) {
+        command.requestId = Date.now().toString();
+      }
+
+      return command;
+    },
+    []
+  );
 
   /**
    * Builds VISS command for set operation
@@ -230,8 +244,11 @@ export default function useVissWebSocket() {
       action: "set",
       path: path,
       value: value,
-      requestId: Date.now().toString(),
     };
+
+    if (options.includeRequestId !== false) {
+      command.requestId = Date.now().toString();
+    }
 
     if (options.authorization) command.authorization = options.authorization;
 
