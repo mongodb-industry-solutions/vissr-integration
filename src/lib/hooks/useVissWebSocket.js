@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback } from "react";
+import { insertVissMessage } from "@/lib/db/messages";
 
 /**
  * Custom hook for managing VISS WebSocket connections and message handling.
@@ -60,21 +61,28 @@ export default function useVissWebSocket() {
         socket.onmessage = (event) => {
           addMessage("received", event.data);
 
-          // Track subscription IDs from responses
+          // Parse message once and use for both MongoDB insertion and subscription tracking
           try {
-            const response = JSON.parse(event.data);
-            if (response.subscriptionId && response.requestId) {
+            const parsedMessage = JSON.parse(event.data);
+
+            // Insert to MongoDB
+            insertVissMessage(parsedMessage).catch((error) => {
+              console.error("MongoDB insertion error:", error);
+            });
+
+            // Track subscription IDs
+            if (parsedMessage.subscriptionId && parsedMessage.requestId) {
               setActiveSubscriptions((prev) => {
                 const newMap = new Map(prev);
-                newMap.set(response.subscriptionId, {
-                  requestId: response.requestId,
+                newMap.set(parsedMessage.subscriptionId, {
+                  requestId: parsedMessage.requestId,
                   timestamp: new Date().toLocaleTimeString(),
                 });
                 return newMap;
               });
             }
           } catch (error) {
-            // Ignore JSON parsing errors for subscription tracking
+            console.error("Failed to parse or store message:", error);
           }
         };
 

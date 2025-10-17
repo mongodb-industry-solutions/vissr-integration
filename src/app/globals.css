@@ -1,2 +1,24 @@
 @import "tailwindcss";
 
+/* Custom styles for navigation arrow marker */
+.navigation-arrow-marker {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Smooth marker transition - glides to new positions over 1 second */
+.smooth-marker-transition {
+  transition: transform 1s linear, left 1s linear, top 1s linear !important;
+}
+
+/* Apply smooth transitions to all Leaflet markers for consistent behavior */
+.leaflet-marker-icon {
+  transition: transform 1s linear !important;
+}
+
+/* Speed badge overlay styling for better visibility */
+.speed-badge-overlay {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(4px);
+}
+

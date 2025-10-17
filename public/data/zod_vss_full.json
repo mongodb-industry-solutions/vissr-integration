@@ -1,0 +1,216 @@
+{
+  "Vehicle": {
+    "type": "branch",
+    "description": "High-level vehicle data.",
+    "children": {
+      "Acceleration": {
+        "type": "branch",
+        "description": "Spatial acceleration. Axis definitions according to ISO 8855.",
+        "children": {
+          "Lateral": {
+            "type": "sensor",
+            "datatype": "float",
+            "description": "Vehicle acceleration in Y (lateral acceleration).",
+            "unit": "m/s^2"
+          },
+          "Longitudinal": {
+            "type": "sensor",
+            "datatype": "float",
+            "description": "Vehicle acceleration in X (longitudinal acceleration).",
+            "unit": "m/s^2"
+          }
+        }
+      },
+      "AngularVelocity": {
+        "type": "branch",
+        "description": "Spatial rotation. Axis definitions according to ISO 8855.",
+        "children": {
+          "Pitch": {
+            "type": "sensor",
+            "datatype": "float",
+            "description": "Vehicle rotation rate along Y (lateral).",
+            "unit": "degrees/s"
+          },
+          "Roll": {
+            "type": "sensor",
+            "datatype": "float",
+            "description": "Vehicle rotation rate along X (longitudinal).",
+            "unit": "degrees/s"
+          }
+        }
+      },
+      "Body": {
+        "type": "branch",
+        "description": "All body components.",
+        "children": {
+          "Lights": {
+            "type": "branch",
+            "description": "Exterior lights.",
+            "children": {
+              "DirectionIndicator": {
+                "type": "branch",
+                "description": "Indicator lights.",
+                "children": {
+                  "Left": {
+                    "type": "branch",
+                    "description": "Indicator lights.",
+                    "children": {
+                      "IsSignaling": {
+                        "type": "actuator",
+                        "datatype": "boolean",
+                        "description": "Indicates if light is signaling or off. True = signaling. False = Off."
+                      }
+                    }
+                  },
+                  "Right": {
+                    "type": "branch",
+                    "description": "Indicator lights.",
+                    "children": {
+                      "IsSignaling": {
+                        "type": "actuator",
+                        "datatype": "boolean",
+                        "description": "Indicates if light is signaling or off. True = signaling. False = Off."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Chassis": {
+        "type": "branch",
+        "description": "All data concerning steering, suspension, wheels, and brakes.",
+        "children": {
+          "Accelerator": {
+            "type": "branch",
+            "description": "Accelerator signals",
+            "children": {
+              "PedalPosition": {
+                "type": "sensor",
+                "datatype": "uint8",
+                "description": "Accelerator pedal position as percent. 0 = Not depressed. 100 = Fully depressed.",
+                "max": 100,
+                "min": 0,
+                "unit": "percent"
+              }
+            }
+          },
+          "Brake": {
+            "type": "branch",
+            "description": "Brake system signals",
+            "children": {
+              "PedalPosition": {
+                "type": "sensor",
+                "datatype": "uint8",
+                "description": "Brake pedal position as percent. 0 = Not depressed. 100 = Fully depressed.",
+                "max": 100,
+                "min": 0,
+                "unit": "percent"
+              }
+            }
+          },
+          "SteeringWheel": {
+            "type": "branch",
+            "description": "Steering wheel signals",
+            "children": {
+              "Angle": {
+                "type": "sensor",
+                "datatype": "int16",
+                "description": "Steering wheel angle. Positive = degrees to the left. Negative = degrees to the right.",
+                "unit": "degrees"
+              },
+              "AngleRate": {
+                "type": "sensor",
+                "datatype": "int16",
+                "unit": "degrees/s"
+              }
+            }
+          }
+        }
+      },
+      "CurrentLocation": {
+        "type": "branch",
+        "description": "The current latitude and longitude of the vehicle.",
+        "children": {
+          "Altitude": {
+            "type": "sensor",
+            "datatype": "double",
+            "description": "Current altitude relative to WGS 84 reference ellipsoid, as measured at the position of GNSS receiver antenna.",
+            "unit": "m"
+          },
+          "GNSSReceiver": {
+            "type": "branch",
+            "description": "Information on the GNSS receiver used for determining current location.",
+            "children": {
+              "GroundSpeed": {
+                "type": "sensor",
+                "datatype": "float",
+                "unit": "km/h"
+              },
+              "SatelliteCount": {
+                "type": "sensor",
+                "datatype": "int8"
+              }
+            }
+          },
+          "Heading": {
+            "type": "sensor",
+            "datatype": "double",
+            "description": "Current heading relative to geographic north. 0 = North, 90 = East, 180 = South, 270 = West.",
+            "max": 360,
+            "min": 0,
+            "unit": "degrees"
+          },
+          "Latitude": {
+            "type": "sensor",
+            "datatype": "double",
+            "description": "Current latitude of vehicle in WGS 84 geodetic coordinates, as measured at the position of GNSS receiver antenna.",
+            "max": 90,
+            "min": -90,
+            "unit": "degrees"
+          },
+          "Longitude": {
+            "type": "sensor",
+            "datatype": "double",
+            "description": "Current longitude of vehicle in WGS 84 geodetic coordinates, as measured at the position of GNSS receiver antenna.",
+            "max": 180,
+            "min": -180,
+            "unit": "degrees"
+          }
+        }
+      },
+      "MotionManagement": {
+        "type": "branch",
+        "description": "Motion Management Information.",
+        "children": {
+          "Steering": {
+            "type": "branch",
+            "description": "MotionManagement related to steering.",
+            "children": {
+              "SteeringWheel": {
+                "type": "branch",
+                "description": "MotionManagement related to steering wheel.",
+                "children": {
+                  "Torque": {
+                    "type": "sensor",
+                    "datatype": "int16",
+                    "description": "Represents the current input torque for steering system, typically corresponds to torque applied by driver on the steering wheel. Positive for torque in counterclockwise direction (based on ISO8855).",
+                    "unit": "Nm"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Speed": {
+        "type": "sensor",
+        "datatype": "float",
+        "description": "Vehicle speed.",
+        "unit": "km/h"
+      }
+    }
+  }
+}

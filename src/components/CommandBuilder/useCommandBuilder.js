@@ -15,6 +15,7 @@ export default function useCommandBuilder({
   buildSetCommand,
   buildSubscribeCommand,
   activeSubscriptions,
+  isExpanded,
 }) {
   const [selectedSignals, setSelectedSignals] = useState(
     defaultSelectedSignals
@@ -28,6 +29,7 @@ export default function useCommandBuilder({
   // Filter array state
   const [filters, setFilters] = useState([]);
   const [includeFilter, setIncludeFilter] = useState(false);
+  const [showCommandEditor, setShowCommandEditor] = useState(false);
 
   const parseFilterParameter = (parameterInput, variant) => {
     const trimmed = (parameterInput || "").trim();
@@ -119,6 +121,14 @@ export default function useCommandBuilder({
     }
   };
 
+  // Reset toggles when component collapses
+  useEffect(() => {
+    if (!isExpanded) {
+      setIncludeFilter(false);
+      setShowCommandEditor(false);
+    }
+  }, [isExpanded]);
+
   // Auto-manage filters based on signals and command type
   useEffect(() => {
     setFilters((prevFilters) => {
@@ -130,7 +140,7 @@ export default function useCommandBuilder({
         if (!hasTimebased) {
           newFilters.unshift({
             variant: "timebased",
-            parameter: '{"period":"5000"}',
+            parameter: '{"period":"1000"}',
           });
         }
       } else {
@@ -138,7 +148,7 @@ export default function useCommandBuilder({
         newFilters = newFilters.filter((f) => {
           if (
             f.variant === "timebased" &&
-            f.parameter === '{"period":"5000"}'
+            f.parameter === '{"period":"1000"}'
           ) {
             return false;
           }
@@ -317,11 +327,13 @@ export default function useCommandBuilder({
     generatedCommand,
     jsonError,
     includeFilter,
+    showCommandEditor,
     filters,
 
     // State setters
     setSelectedSignals,
     setIncludeFilter,
+    setShowCommandEditor,
     setSetValue,
 
     // Filter handlers
