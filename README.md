@@ -1,109 +1,77 @@
-# Next.js Demo Template
+# VISSR <-> MongoDB Integration
 
-A common template to quickly start, maintain consistency, and speed up development for new Next.js demos.
+A proof-of-concept application demonstrating real-time synchronization between the Vehicle Information Service Specification Reference Implementation (VISSR) and MongoDB. This interactive web application connects to a VISSR server to stream vehicle telemetry data using the Vehicle Signal Specification (VSS), stores it in MongoDB, and visualizes it in real-time with an intuitive interface.
 
-## Quick Start
+## Architecture
 
-### Prerequisites
+![Architecture Diagram](public/architecture.svg)
 
-- Node.js 22 or higher
-- MongoDB connection string (to test MongoDB access)
+The application uses a modern Next.js frontend that connects to a VISSR server via WebSocket. Vehicle data flows through MongoDB, where change streams enable real-time updates back to the client for synchronized status displays and map visualization.
 
-### Setup
+## Prerequisites
 
-1. **Create a new repository from this template for your demo.**
-2. **Clone your new demo repository.**
-3. **Run the development server:**
+Before you begin, ensure you have the following:
 
-   ```bash
-   npm run dev
-   ```
+- **VISSR Server** - Install and run locally from [COVESA/vissr](https://github.com/COVESA/vissr/tree/master)
+- **Zenseact Open Dataset** - Optional, for realistic vehicle data playback ([download options here](https://zod.zenseact.com/download/))
+- **MongoDB Atlas** - A cluster (M0 free tier or higher)
+- **Node.js** - Version 22 or higher
 
-   Or using Docker
+## Getting Started
 
-   ```bash
-   make build
-   ```
+### 1. Install Dependencies
 
-4. _(Optional)_ To check MongoDB connectivity:
-   - Copy the example env file: `cp EXAMPLE.env .env`
-   - Update `MONGODB_URI` and `DATABASE_NAME` in `.env`.
-   - Rerun the template and use the home page button to test the connection.
-5. If no data is found in the collection, seed the test database:
-   ```bash
-   npm run seed
-   ```
-
-## How to Use This Template
-
-### Project Structure
-
-- `environments/` — Used by CI/CD for Kanopy deployments
-- `public/` — Static assets (images, PDFs, etc.)
-- `scripts/` — Helper scripts for demo setup
-- `src/` — Main source code for your demo. See [STYLE-GUIDE.md](utils/style/STYLE-GUIDE.md) for more info
-- `utils/` — General utilities for development and setup (not needed at runtime)
-- `utils/data/` — Initial data for the demo, used by the seed script
-- `utils/style/` — Style guides, customizable for your coding preferences
-- `utils/templates/` — Reusable components and integrations ([see templates README](utils/templates/README.md))
-
-### Scripts & Automation
-
-Scripts make demos easy to set up for any user. Automate as much as possible—like creating collections, initial data, indexes, and embeddings—so users don’t need to do it manually. Always include a seed script for MongoDB setup; see `scripts/seed.mjs` for a simple example.
-
-### Before Publishing the Demo
-
-Before making the repo public or deploying in production, make sure to check these recommendations:
-
-- Update the README to describe your actual demo, not the template. See [README-demo.md](README-demo.md) for an example.
-- Test the set up instructions in a clean environment to verify that it works.
-- Remove or `.gitignore` folders used only for development or template content not needed in the demo.
-- Before deploying, run `npm run lint`.
-- Avoid using `--legacy-dep-peers` by managing dependencies well. _(Note: LeafyGreen UI packages may have issues with TS5.8; for now, use versions prior to the TS5.8 update.)_
-
-### Access MongoDB
-
-MongoDB access is handled securely using Next.js server actions (instead of API Routes). This keeps all database logic on the server and prevents unsafe operations from the browser.
-
-**Example:**
-
-`src/lib/db/test.js`
-
-```js
-import { mongoAction } from "@/integrations/mongodb/actions.js";
-
-export async function fetchTestDocuments() {
-  try {
-    return await mongoAction("find", {
-      collection: "test",
-      filter: {},
-      limit: 10,
-    });
-  } catch (error) {
-    return { error: error.message };
-  }
-}
+```bash
+npm install
 ```
 
-`src/components/test/Test.js`
+### 2. Configure Environment Variables
 
-```js
-import { fetchTestDocuments } from "@/lib/api/test.js";
+Create a `.env.local` file in the root directory:
 
-const handleClick = async () => {
-  const data = await fetchTestDocuments();
-  setResult(data);
-};
+```bash
+MONGODB_URI=your_mongodb_connection_string
+DATABASE_NAME=vissr_db
 ```
 
-### Other Integrations
+### 3. Set Up MongoDB
 
-Keep external libraries (e.g., Bedrock, GCP Vertex AI, mail services) in the `src/integrations/` folder for separation of concerns. See [templates](utils/templates/README.md) for included integrations.
+To store and sync vehicle data with MongoDB, create a database trigger in MongoDB Atlas to handle real-time updates.
 
-## How to Contribute
+### 4. Generate Custom Trip Data (Optional)
 
-Request access to the repository through MANA. Submit pull requests for improvements. If you build reusable demo code, consider adding it to `/utils/templates/`.
+If you have the Zenseact Open Dataset, you can generate custom VSS-compliant trip data for the VISSR feeder:
 
-## Contact
+1. Navigate to `utils/notebooks/`
+2. Open `zod-dataset.ipynb` in Jupyter
+3. Follow the notebook to convert ZOD drive data into `tripdata.json`
+4. Use the generated file with VISSR Feederv3
 
-This demo template is maintained by the Industry Solutions team. For issues or feedback, contact industry.solutions@mongodb.com or Slack channel [#industry-solutions](https://mongodb.enterprise.slack.com/archives/C061PEMD4KB).
+### 5. Start VISSR Feederv3 and Server
+
+Follow the [VISSR installation guide](https://github.com/COVESA/vissr/tree/master) to start your local feeder and VISSR server on port 8080.
+
+### 6. Run the Application
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### 7. Connect and Explore
+
+1. (Optional) Enter your VISSR server's IP address (by default it will connect to localhost)
+2. Click **Connect** to establish the WebSocket connection
+3. Use the Command Builder to send VSS commands and subscribe to vehicle signals
+4. Watch real-time vehicle data appear in the status panel and on the map
+
+## Resources
+
+- [COVESA - Connected Vehicle Systems Alliance](https://covesa.global/)
+- [VISSR on GitHub](https://github.com/COVESA/vissr)
+- [Vehicle Signal Specification (VSS)](https://covesa.github.io/vehicle_signal_specification/)
+- [Zenseact Open Dataset](https://zod.zenseact.com/)
+- [MongoDB Atlas](https://www.mongodb.com/cloud/atlas)
