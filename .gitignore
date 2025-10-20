@@ -40,7 +40,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Demo template - TODO: UNCOMMENT BELOW LINES BEFORE PUBLISHING
-#/utils/style
-#/utils/templates
+# Demo template
+/utils/style
+/utils/templates
 /utils/data/zod
