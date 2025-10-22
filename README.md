@@ -45,7 +45,7 @@ To store and sync vehicle data with MongoDB, create a database trigger in MongoD
 If you have the Zenseact Open Dataset, you can generate custom VSS-compliant trip data for the VISSR feeder:
 
 1. Navigate to `utils/notebooks/`
-2. Open `zod-dataset.ipynb` in Jupyter
+2. Open [`zod-vss-modeling.ipynb`](utils/notebooks/zod-vss-modeling.ipynb) in Jupyter
 3. Follow the notebook to convert ZOD drive data into `tripdata.json`
 4. Use the generated file with VISSR Feederv3
 
