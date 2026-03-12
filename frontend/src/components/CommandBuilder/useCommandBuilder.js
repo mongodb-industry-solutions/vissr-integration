@@ -1,4 +1,39 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+
+const convertToStringValues = (obj) => {
+  if (Array.isArray(obj)) {
+    return obj.map((item) => convertToStringValues(item));
+  } else if (obj && typeof obj === "object") {
+    const result = {};
+    for (const [key, value] of Object.entries(obj)) {
+      result[key] = convertToStringValues(value);
+    }
+    return result;
+  } else {
+    // Convert all primitive values to strings
+    return String(obj);
+  }
+};
+
+const parseFilterParameter = (parameterInput, variant) => {
+  const trimmed = (parameterInput || "").trim();
+  if (!trimmed) return undefined;
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    // Convert the parsed result to ensure all values are strings
+    return convertToStringValues(parsed);
+  } catch (err) {
+    // Allow plain string, and CSV to array for 'paths'
+    if (variant === "paths" && trimmed.includes(",")) {
+      return trimmed
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return trimmed;
+  }
+};
 
 /**
  * useCommandBuilder
@@ -30,41 +65,6 @@ export default function useCommandBuilder({
   const [filters, setFilters] = useState([]);
   const [includeFilter, setIncludeFilter] = useState(false);
   const [showCommandEditor, setShowCommandEditor] = useState(false);
-
-  const parseFilterParameter = (parameterInput, variant) => {
-    const trimmed = (parameterInput || "").trim();
-    if (!trimmed) return undefined;
-
-    try {
-      const parsed = JSON.parse(trimmed);
-      // Convert the parsed result to ensure all values are strings
-      return convertToStringValues(parsed);
-    } catch (err) {
-      // Allow plain string, and CSV to array for 'paths'
-      if (variant === "paths" && trimmed.includes(",")) {
-        return trimmed
-          .split(",")
-          .map((s) => s.trim())
-          .filter(Boolean);
-      }
-      return trimmed;
-    }
-  };
-
-  const convertToStringValues = (obj) => {
-    if (Array.isArray(obj)) {
-      return obj.map((item) => convertToStringValues(item));
-    } else if (obj && typeof obj === "object") {
-      const result = {};
-      for (const [key, value] of Object.entries(obj)) {
-        result[key] = convertToStringValues(value);
-      }
-      return result;
-    } else {
-      // Convert all primitive values to strings
-      return String(obj);
-    }
-  };
 
   const addFilter = () => {
     const newFilter = { variant: "timebased", parameter: "" };
@@ -99,7 +99,7 @@ export default function useCommandBuilder({
     return allVariants.filter((variant) => !usedVariants.includes(variant));
   };
 
-  const getLatestSubscriptionId = () => {
+  const getLatestSubscriptionId = useCallback(() => {
     if (!activeSubscriptions || activeSubscriptions.size === 0) {
       return "1"; // Default fallback
     }
@@ -107,7 +107,7 @@ export default function useCommandBuilder({
     // Get the most recent subscription ID (last entry in the Map)
     const subscriptionIds = Array.from(activeSubscriptions.keys());
     return subscriptionIds[subscriptionIds.length - 1] || "1";
-  };
+  }, [activeSubscriptions]);
 
   const handleCommandTypeChange = (valueOrEvent) => {
     const nextValue =
@@ -280,6 +280,7 @@ export default function useCommandBuilder({
     buildSetCommand,
     buildSubscribeCommand,
     activeSubscriptions,
+    getLatestSubscriptionId,
   ]);
 
   const validateJson = (jsonString) => {

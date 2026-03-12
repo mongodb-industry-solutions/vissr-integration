@@ -1,0 +1,1 @@
+{"options":{"expireAfterSeconds":{"$numberLong":"86400"},"timeseries":{"timeField":"ts","metaField":"vin","granularity":"seconds","bucketMaxSpanSeconds":{"$numberInt":"3600"}}},"indexes":[{"v":{"$numberInt":"2"},"key":{"vin":{"$numberInt":"1"},"ts":{"$numberInt":"1"}},"name":"vin_1_ts_1"}],"collectionName":"telemetry","type":"timeseries"}

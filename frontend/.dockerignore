@@ -46,6 +46,4 @@ THIRD-PARTY-NOTICES.md
 README.md
 
 # Ignore other folders not needed for build
-/utils/
-/environments/
 /scripts/
