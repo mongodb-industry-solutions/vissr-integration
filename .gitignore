@@ -48,3 +48,6 @@ next-env.d.ts
 /utils/templates
 /utils/data/zod
 /utils/notebooks/results
+
+# VISSR reference
+./vissr/

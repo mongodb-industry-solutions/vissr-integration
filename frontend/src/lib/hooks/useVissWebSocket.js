@@ -49,13 +49,19 @@ export default function useVissWebSocket() {
       setHostIP(host);
 
       try {
-        const wsUrl = `ws://${host}:8080`;
+        // If the host already contains a port, use it directly. Otherwise, default to 8888 for WebSocket.
+        // Also strip any 'ws://' or 'wss://' prefix if the user accidentally included it
+        let cleanHost = host.replace(/^(ws|wss):\/\//i, "");
+        let wsUrl = cleanHost.includes(":") 
+          ? `ws://${cleanHost}` 
+          : `ws://${cleanHost}:8888`;
+        
         const socket = new WebSocket(wsUrl, "VISS-noenc");
 
         socket.onopen = () => {
           setIsConnected(true);
           setIsConnecting(false);
-          addMessage("system", `Connected to ${host}:8080`);
+          addMessage("system", `Connected to ${wsUrl}`);
         };
 
         socket.onmessage = (event) => {
@@ -105,8 +111,8 @@ export default function useVissWebSocket() {
 
         socket.onerror = () => {
           setIsConnecting(false);
-          setConnectionError(`Failed to connect to ${host}:8080`);
-          addMessage("error", `Connection error to ${host}:8080`);
+          setConnectionError(`Failed to connect to ${wsUrl}`);
+          addMessage("error", `Connection error to ${wsUrl}`);
         };
 
         socketRef.current = socket;

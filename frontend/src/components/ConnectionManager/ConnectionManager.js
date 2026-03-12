@@ -62,7 +62,7 @@ export default function ConnectionManager({
       </div>
 
       <Body className="text-sm text-gray-600 mt-1">
-        Host: {hostIP}:8080 (VISS-noenc)
+        Host: {hostIP.includes(":") ? hostIP : `${hostIP}:8888`} (VISS-noenc)
       </Body>
 
       <Modal
