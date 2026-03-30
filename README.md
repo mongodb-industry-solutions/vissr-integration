@@ -6,7 +6,7 @@ A proof-of-concept application demonstrating real-time synchronization between t
 
 ![Architecture Diagram](public/architecture.svg)
 
-The application uses a modern Next.js frontend that connects to a VISSR server via WebSocket. Vehicle data flows through MongoDB, where change streams enable real-time updates back to the client for synchronized status displays and map visualization.
+The application uses a modern Next.js frontend that displays synchronized vehicle status and map visualizations. Vehicle telemetry data flows from the VISSR server into MongoDB via an MQTT broker (Mosquitto) and a dedicated Node.js microservice (`mqtt-bridge`). The frontend then consumes this data in real-time using MongoDB change streams, ensuring a decoupled and scalable architecture.
 
 ## Prerequisites
 
@@ -36,7 +36,9 @@ DATABASE_NAME=vissr_db
 
 ### 3. Set Up MongoDB
 
-To store and sync vehicle data with MongoDB, create a database trigger in MongoDB Atlas that runs the handler in [`utils/triggers/updateVehicleState.js`](utils/triggers/updateVehicleState.js) each time a new telemetry document is inserted. This trigger implements the real-time update logic for vehicle state and telemetry.
+To store and sync vehicle data with MongoDB, a dedicated microservice (`mqtt-bridge`) subscribes to the MQTT broker and processes the telemetry. This bridge automatically inserts telemetry data and updates the latest vehicle status in MongoDB.
+
+_(Note: The previous trigger-based approach in `utils/triggers/updateVehicleState.js` has been replaced by the `mqtt-bridge` microservice to improve scalability and decouple ingestion from the frontend.)_
 
 **Disclaimer:** This trigger-based approach is intended for demonstration purposes in small-scale/proof-of-concept environments. For production systems or when scaling to larger volumes of streaming data, consider using [MongoDB Atlas Stream Processing](https://www.mongodb.com/products/platform/atlas-stream-processing).
 
