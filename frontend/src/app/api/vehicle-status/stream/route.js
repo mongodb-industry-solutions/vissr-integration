@@ -5,6 +5,8 @@ import {
 } from "@/integrations/mongodb/changeStreams";
 import { getVehicleStatus } from "@/lib/db/vehicleStatus";
 
+export const dynamic = "force-dynamic";
+
 /**
  * GET endpoint that returns a Server-Sent Events (SSE) stream
  * for real-time vehicle_status collection updates.
