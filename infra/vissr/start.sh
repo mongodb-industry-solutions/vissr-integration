@@ -11,10 +11,10 @@ memcached -d -u root --unix-mask=755 --unix-socket=/var/tmp/vissv2/memcacheDB.so
 # Wait a moment for memcached to be ready
 sleep 1
 
-# Start the VISS server with memcache
+# Start the VISS server with memcache and mqtt enabled
 echo "Starting VISSv2 Server..."
 cd /app/server/vissv2server
-./vissv2server -s memcache &
+./vissv2server -s memcache -m &
 
 # Wait for the server to be ready
 sleep 2

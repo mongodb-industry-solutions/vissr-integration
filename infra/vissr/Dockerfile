@@ -3,7 +3,9 @@ WORKDIR /build
 
 # Clone the repository and checkout the specific commit
 RUN git clone https://github.com/COVESA/vissr.git . && \
-    git checkout ad53564
+    git checkout ad53564 && \
+    sed -i 's/FVTAddr := "test.mosquitto.org"/FVTAddr := os.Getenv("MQTT_BROKER_ADDR")/' server/vissv2server/mqttMgr/mqttMgr.go && \
+    sed -i 's/vin := extractVin(string(response))/_ = response; vin := "MDBAX9C12XYZ1234"/' server/vissv2server/mqttMgr/mqttMgr.go
 
 # Build the server
 WORKDIR /build/server/vissv2server
