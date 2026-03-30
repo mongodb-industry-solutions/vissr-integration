@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { Body } from "@leafygreen-ui/typography";
 import Button from "@leafygreen-ui/button";
 import TextInput from "@leafygreen-ui/text-input";
+import { Select, Option } from "@leafygreen-ui/select";
 import Icon from "@leafygreen-ui/icon";
 import IconButton from "@leafygreen-ui/icon-button";
 import Modal from "@leafygreen-ui/modal";
@@ -16,23 +17,28 @@ import Modal from "@leafygreen-ui/modal";
  */
 export default function ConnectionManager({
   hostIP,
+  protocol,
   isConnected,
   isConnecting,
   connectionError,
   onConnect,
   onDisconnect,
   onSetHost,
+  onProtocolChange,
 }) {
   const [isConfigOpen, setIsConfigOpen] = useState(false);
   const [hostInput, setHostInput] = useState("");
+  const [protocolInput, setProtocolInput] = useState("websocket");
 
   const handleOpenConfig = () => {
     setHostInput(hostIP);
+    setProtocolInput(protocol || "websocket");
     setIsConfigOpen(true);
   };
 
   const handleSaveHost = () => {
     onSetHost?.(hostInput);
+    onProtocolChange?.(protocolInput);
     setIsConfigOpen(false);
   };
 
@@ -62,7 +68,7 @@ export default function ConnectionManager({
       </div>
 
       <Body className="text-sm text-gray-600 mt-1">
-        Host: {hostIP.includes(":") ? hostIP : `${hostIP}:8888`} (VISS-noenc)
+        Host: {hostIP.includes(":") ? hostIP : `${hostIP}:${protocol === "websocket" ? "8888" : "9001"}`} ({protocol === "websocket" ? "WS" : "MQTT"})
       </Body>
 
       <Modal
@@ -79,6 +85,15 @@ export default function ConnectionManager({
             errorMessage={connectionError}
             state={connectionError ? "error" : "none"}
           />
+          <Select
+            label="Protocol"
+            value={protocolInput}
+            onChange={(value) => setProtocolInput(value)}
+            disabled={isConnected || isConnecting}
+          >
+            <Option value="websocket">WebSocket</Option>
+            <Option value="mqtt">MQTT</Option>
+          </Select>
           <div className="flex justify-end gap-2">
             <Button variant="default" onClick={() => setIsConfigOpen(false)}>
               Cancel

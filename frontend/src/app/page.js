@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import Card from "@leafygreen-ui/card";
 import { H1 } from "@leafygreen-ui/typography";
 import useVissWebSocket from "@/lib/hooks/useVissWebSocket";
+import useVissMqtt from "@/lib/hooks/useVissMqtt";
 import useVssSignals from "@/lib/hooks/useVssSignals";
 import useVehicleStatusStream from "@/lib/hooks/useVehicleStatusStream";
 import ConnectionManager from "@/components/ConnectionManager/ConnectionManager";
@@ -26,12 +27,20 @@ export default function Home() {
   const [isVehicleStatusExpanded, setIsVehicleStatusExpanded] = useState(true);
   const [isMapViewExpanded, setIsMapViewExpanded] = useState(false);
 
+  const [protocol, setProtocol] = useState("websocket");
+
   // Vehicle status stream - shared between VehicleStatus and MapView
   const {
     vehicleStatus,
     isLoading: isLoadingVehicleStatus,
     error: vehicleStatusError,
   } = useVehicleStatusStream();
+
+  const wsHook = useVissWebSocket();
+  const mqttHook = useVissMqtt();
+
+  const activeHook = protocol === "websocket" ? wsHook : mqttHook;
+
   const {
     hostIP,
     isConnected,
@@ -47,7 +56,7 @@ export default function Home() {
     buildGetCommand,
     buildSetCommand,
     buildSubscribeCommand,
-  } = useVissWebSocket();
+  } = activeHook;
 
   const { signals, isLoading: isLoadingSignals } = useVssSignals();
 
@@ -58,12 +67,14 @@ export default function Home() {
           <H1>VISSR MongoDB Sync</H1>
           <ConnectionManager
             hostIP={hostIP}
+            protocol={protocol}
             isConnected={isConnected}
             isConnecting={isConnecting}
             connectionError={connectionError}
             onConnect={connectToHost}
             onDisconnect={disconnect}
             onSetHost={setHost}
+            onProtocolChange={setProtocol}
           />
         </div>
       </div>
