@@ -1,0 +1,13 @@
+{
+  "name": "mqtt-bridge",
+  "version": "1.0.0",
+  "description": "Bridge between MQTT and MongoDB for VISSR",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "mongodb": "^6.5.0",
+    "mqtt": "^5.0.5"
+  }
+}

@@ -1,0 +1,972 @@
+Trailer:
+  description: High-level Trailer data.
+  type: branch
+
+Trailer.Chassis:
+  description: All data concerning steering, suspension, wheels, and brakes.
+  type: branch
+
+Trailer.Chassis.Accelerator:
+  description: Accelerator signals
+  type: branch
+
+Trailer.Chassis.Accelerator.PedalPosition:
+  datatype: uint8
+  description: Accelerator pedal position as percent. 0 = Not depressed. 100 = Fully depressed.
+  max: 100
+  min: 0
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle:
+  description: Axle signals
+  type: branch
+
+Trailer.Chassis.Axle.Axle10:
+  description: Axle signals
+  type: branch
+
+Trailer.Chassis.Axle.Axle10.AxleWidth:
+  comment: Corresponds to SAE J1100-2009 W113.
+  datatype: uint16
+  description: The lateral distance between the wheel mounting faces, measured along the spindle axis.
+  type: attribute
+  unit: mm
+
+Trailer.Chassis.Axle.Axle10.Liftable:
+  description: Axle liftable features
+  type: branch
+
+Trailer.Chassis.Axle.Axle10.Liftable.IsLifted:
+  datatype: boolean
+  description: True if axle is lifted.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.SteeringAngle:
+  comment: Single track two-axle model steering angle refers to the angle that a centrally mounted wheel would have.
+  datatype: float
+  description: Single track two-axle model steering angle. Angle according to ISO 8855. Positive = degrees to the left. Negative = degrees to the right.
+  type: sensor
+  unit: degrees
+
+Trailer.Chassis.Axle.Axle10.TireAspectRatio:
+  datatype: uint8
+  description: Aspect ratio between tire section height and tire section width, as per ETRTO / TRA standard.
+  type: attribute
+  unit: percent
+
+Trailer.Chassis.Axle.Axle10.TireDiameter:
+  datatype: float
+  description: Outer diameter of tires, in inches, as per ETRTO / TRA standard.
+  type: attribute
+  unit: inch
+
+Trailer.Chassis.Axle.Axle10.TireWidth:
+  datatype: uint16
+  description: Nominal section width of tires, in mm, as per ETRTO / TRA standard.
+  type: attribute
+  unit: mm
+
+Trailer.Chassis.Axle.Axle10.TrackWidth:
+  comment: Corresponds to SAE J1100-2009 W102.
+  datatype: uint16
+  description: The lateral distance between the centers of the wheels, measured along the spindle, or axle axis. If there are dual rear wheels, measure from the midway points between the inner and outer tires.
+  type: attribute
+  unit: mm
+
+Trailer.Chassis.Axle.Axle10.TreadWidth:
+  comment: Corresponds to SAE J1100-2009 W101.
+  datatype: uint16
+  description: The lateral distance between the centerlines of the base tires at ground, including camber angle. If there are dual rear wheels, measure from the midway points between the inner and outer tires.
+  type: attribute
+  unit: mm
+
+Trailer.Chassis.Axle.Axle10.Wheel:
+  description: Wheel signals for axle
+  type: branch
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13:
+  description: Wheel signals for axle
+  type: branch
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.AngularSpeed:
+  comment: Positive if wheel is trying to drive vehicle forward. Negative if wheel is trying to drive vehicle backward.
+  datatype: float
+  description: Angular (Rotational) speed of a vehicle's wheel.
+  type: sensor
+  unit: degrees/s
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake:
+  description: Brake signals for wheel
+  type: branch
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake.FluidLevel:
+  datatype: uint8
+  description: Brake fluid level as percent. 0 = Empty. 100 = Full.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake.IsBrakesWorn:
+  datatype: boolean
+  description: Brake pad wear status. True = Worn. False = Not Worn.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake.IsFluidLevelLow:
+  datatype: boolean
+  description: Brake fluid level status. True = Brake fluid level low. False = Brake fluid level OK.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the brake or vehicle manufacturer.
+  datatype: boolean
+  description: Brake temperature status. True = High temperature False = Low temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake.PadWear:
+  datatype: uint8
+  description: Brake pad wear as percent. 0 = No Wear. 100 = Worn.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake.Temperature:
+  datatype: uint16
+  description: Brake temperature in Celsius.
+  max: 2500
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Speed:
+  datatype: float
+  description: Linear speed of a vehicle's wheel.
+  type: sensor
+  unit: km/h
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Tire:
+  description: Tire signals for wheel.
+  type: branch
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Tire.IsPowerSufficient:
+  comment: If true the module power is sufficient to achieve the specified performance of the module.
+  datatype: boolean
+  description: Tire module power status. True = Sufficient power. False = Insufficient power.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Tire.IsPressureLow:
+  comment: If true the pressure is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire pressure status. True = Low tire pressure. False = Good tire pressure.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Tire.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire temperature status. True = High tire temperature. False = Good tire temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Tire.Pressure:
+  datatype: uint16
+  description: Tire pressure in kilo-Pascal.
+  max: 2500
+  type: sensor
+  unit: kPa
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Tire.Temperature:
+  datatype: float
+  description: Tire temperature in Celsius.
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3:
+  description: Wheel signals for axle
+  type: branch
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.AngularSpeed:
+  comment: Positive if wheel is trying to drive vehicle forward. Negative if wheel is trying to drive vehicle backward.
+  datatype: float
+  description: Angular (Rotational) speed of a vehicle's wheel.
+  type: sensor
+  unit: degrees/s
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Brake:
+  description: Brake signals for wheel
+  type: branch
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Brake.FluidLevel:
+  datatype: uint8
+  description: Brake fluid level as percent. 0 = Empty. 100 = Full.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Brake.IsBrakesWorn:
+  datatype: boolean
+  description: Brake pad wear status. True = Worn. False = Not Worn.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Brake.IsFluidLevelLow:
+  datatype: boolean
+  description: Brake fluid level status. True = Brake fluid level low. False = Brake fluid level OK.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Brake.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the brake or vehicle manufacturer.
+  datatype: boolean
+  description: Brake temperature status. True = High temperature False = Low temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Brake.PadWear:
+  datatype: uint8
+  description: Brake pad wear as percent. 0 = No Wear. 100 = Worn.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Brake.Temperature:
+  datatype: uint16
+  description: Brake temperature in Celsius.
+  max: 2500
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Speed:
+  datatype: float
+  description: Linear speed of a vehicle's wheel.
+  type: sensor
+  unit: km/h
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Tire:
+  description: Tire signals for wheel.
+  type: branch
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Tire.IsPowerSufficient:
+  comment: If true the module power is sufficient to achieve the specified performance of the module.
+  datatype: boolean
+  description: Tire module power status. True = Sufficient power. False = Insufficient power.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Tire.IsPressureLow:
+  comment: If true the pressure is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire pressure status. True = Low tire pressure. False = Good tire pressure.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Tire.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire temperature status. True = High tire temperature. False = Good tire temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Tire.Pressure:
+  datatype: uint16
+  description: Tire pressure in kilo-Pascal.
+  max: 2500
+  type: sensor
+  unit: kPa
+
+Trailer.Chassis.Axle.Axle10.Wheel.Pos3.Tire.Temperature:
+  datatype: float
+  description: Tire temperature in Celsius.
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle10.WheelCount:
+  datatype: uint8
+  description: Number of wheels on the axle
+  type: attribute
+
+Trailer.Chassis.Axle.Axle10.WheelDiameter:
+  datatype: float
+  description: Diameter of wheels (rims without tires), in inches, as per ETRTO / TRA standard.
+  type: attribute
+  unit: inch
+
+Trailer.Chassis.Axle.Axle10.WheelWidth:
+  datatype: float
+  description: Width of wheels (rims without tires), in inches, as per ETRTO / TRA standard.
+  type: attribute
+  unit: inch
+
+Trailer.Chassis.Axle.Axle10.WheelsConfig:
+  allowed:
+  - Pos1
+  - Pos2
+  - Pos3
+  - Pos4
+  - Pos5
+  - Pos6
+  - Pos7
+  - Pos8
+  - Pos9
+  - Pos10
+  - Pos11
+  - Pos12
+  - Pos13
+  - Pos14
+  - Pos15
+  datatype: string[]
+  description: The current wheels configuration for the trailer in the identified axle
+  type: attribute
+
+Trailer.Chassis.Axle.Axle12:
+  description: Axle signals
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.AxleWidth:
+  comment: Corresponds to SAE J1100-2009 W113.
+  datatype: uint16
+  description: The lateral distance between the wheel mounting faces, measured along the spindle axis.
+  type: attribute
+  unit: mm
+
+Trailer.Chassis.Axle.Axle12.Driving:
+  description: Axle driving features
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Driving.IsDiffLocked:
+  datatype: boolean
+  description: True if differential is locked on the axle.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Liftable:
+  description: Axle liftable features
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Liftable.IsLifted:
+  datatype: boolean
+  description: True if axle is lifted.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Steerable:
+  description: Axle steerable features
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Steerable.SteeringAngle:
+  comment: Single track two-axle model steering angle refers to the angle that a centrally mounted wheel would have.
+  datatype: float
+  description: Single track two-axle model steering angle. Angle according to ISO 8855. Positive = degrees to the left. Negative = degrees to the right.
+  type: sensor
+  unit: degrees
+
+Trailer.Chassis.Axle.Axle12.SteeringAngle:
+  comment: Single track two-axle model steering angle refers to the angle that a centrally mounted wheel would have.
+  datatype: float
+  description: Single track two-axle model steering angle. Angle according to ISO 8855. Positive = degrees to the left. Negative = degrees to the right.
+  type: sensor
+  unit: degrees
+
+Trailer.Chassis.Axle.Axle12.TireAspectRatio:
+  datatype: uint8
+  description: Aspect ratio between tire section height and tire section width, as per ETRTO / TRA standard.
+  type: attribute
+  unit: percent
+
+Trailer.Chassis.Axle.Axle12.TireDiameter:
+  datatype: float
+  description: Outer diameter of tires, in inches, as per ETRTO / TRA standard.
+  type: attribute
+  unit: inch
+
+Trailer.Chassis.Axle.Axle12.TireWidth:
+  datatype: uint16
+  description: Nominal section width of tires, in mm, as per ETRTO / TRA standard.
+  type: attribute
+  unit: mm
+
+Trailer.Chassis.Axle.Axle12.TrackWidth:
+  comment: Corresponds to SAE J1100-2009 W102.
+  datatype: uint16
+  description: The lateral distance between the centers of the wheels, measured along the spindle, or axle axis. If there are dual rear wheels, measure from the midway points between the inner and outer tires.
+  type: attribute
+  unit: mm
+
+Trailer.Chassis.Axle.Axle12.TreadWidth:
+  comment: Corresponds to SAE J1100-2009 W101.
+  datatype: uint16
+  description: The lateral distance between the centerlines of the base tires at ground, including camber angle. If there are dual rear wheels, measure from the midway points between the inner and outer tires.
+  type: attribute
+  unit: mm
+
+Trailer.Chassis.Axle.Axle12.Wheel:
+  description: Wheel signals for axle
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12:
+  description: Wheel signals for axle
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.AngularSpeed:
+  comment: Positive if wheel is trying to drive vehicle forward. Negative if wheel is trying to drive vehicle backward.
+  datatype: float
+  description: Angular (Rotational) speed of a vehicle's wheel.
+  type: sensor
+  unit: degrees/s
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Brake:
+  description: Brake signals for wheel
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Brake.FluidLevel:
+  datatype: uint8
+  description: Brake fluid level as percent. 0 = Empty. 100 = Full.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Brake.IsBrakesWorn:
+  datatype: boolean
+  description: Brake pad wear status. True = Worn. False = Not Worn.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Brake.IsFluidLevelLow:
+  datatype: boolean
+  description: Brake fluid level status. True = Brake fluid level low. False = Brake fluid level OK.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Brake.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the brake or vehicle manufacturer.
+  datatype: boolean
+  description: Brake temperature status. True = High temperature False = Low temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Brake.PadWear:
+  datatype: uint8
+  description: Brake pad wear as percent. 0 = No Wear. 100 = Worn.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Brake.Temperature:
+  datatype: uint16
+  description: Brake temperature in Celsius.
+  max: 2500
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Speed:
+  datatype: float
+  description: Linear speed of a vehicle's wheel.
+  type: sensor
+  unit: km/h
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Tire:
+  description: Tire signals for wheel.
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Tire.IsPowerSufficient:
+  comment: If true the module power is sufficient to achieve the specified performance of the module.
+  datatype: boolean
+  description: Tire module power status. True = Sufficient power. False = Insufficient power.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Tire.IsPressureLow:
+  comment: If true the pressure is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire pressure status. True = Low tire pressure. False = Good tire pressure.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Tire.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire temperature status. True = High tire temperature. False = Good tire temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Tire.Pressure:
+  datatype: uint16
+  description: Tire pressure in kilo-Pascal.
+  max: 2500
+  type: sensor
+  unit: kPa
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos12.Tire.Temperature:
+  datatype: float
+  description: Tire temperature in Celsius.
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13:
+  description: Wheel signals for axle
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.AngularSpeed:
+  comment: Positive if wheel is trying to drive vehicle forward. Negative if wheel is trying to drive vehicle backward.
+  datatype: float
+  description: Angular (Rotational) speed of a vehicle's wheel.
+  type: sensor
+  unit: degrees/s
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Brake:
+  description: Brake signals for wheel
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Brake.FluidLevel:
+  datatype: uint8
+  description: Brake fluid level as percent. 0 = Empty. 100 = Full.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Brake.IsBrakesWorn:
+  datatype: boolean
+  description: Brake pad wear status. True = Worn. False = Not Worn.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Brake.IsFluidLevelLow:
+  datatype: boolean
+  description: Brake fluid level status. True = Brake fluid level low. False = Brake fluid level OK.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Brake.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the brake or vehicle manufacturer.
+  datatype: boolean
+  description: Brake temperature status. True = High temperature False = Low temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Brake.PadWear:
+  datatype: uint8
+  description: Brake pad wear as percent. 0 = No Wear. 100 = Worn.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Brake.Temperature:
+  datatype: uint16
+  description: Brake temperature in Celsius.
+  max: 2500
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Speed:
+  datatype: float
+  description: Linear speed of a vehicle's wheel.
+  type: sensor
+  unit: km/h
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Tire:
+  description: Tire signals for wheel.
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Tire.IsPowerSufficient:
+  comment: If true the module power is sufficient to achieve the specified performance of the module.
+  datatype: boolean
+  description: Tire module power status. True = Sufficient power. False = Insufficient power.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Tire.IsPressureLow:
+  comment: If true the pressure is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire pressure status. True = Low tire pressure. False = Good tire pressure.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Tire.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire temperature status. True = High tire temperature. False = Good tire temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Tire.Pressure:
+  datatype: uint16
+  description: Tire pressure in kilo-Pascal.
+  max: 2500
+  type: sensor
+  unit: kPa
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos13.Tire.Temperature:
+  datatype: float
+  description: Tire temperature in Celsius.
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3:
+  description: Wheel signals for axle
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.AngularSpeed:
+  comment: Positive if wheel is trying to drive vehicle forward. Negative if wheel is trying to drive vehicle backward.
+  datatype: float
+  description: Angular (Rotational) speed of a vehicle's wheel.
+  type: sensor
+  unit: degrees/s
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Brake:
+  description: Brake signals for wheel
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Brake.FluidLevel:
+  datatype: uint8
+  description: Brake fluid level as percent. 0 = Empty. 100 = Full.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Brake.IsBrakesWorn:
+  datatype: boolean
+  description: Brake pad wear status. True = Worn. False = Not Worn.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Brake.IsFluidLevelLow:
+  datatype: boolean
+  description: Brake fluid level status. True = Brake fluid level low. False = Brake fluid level OK.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Brake.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the brake or vehicle manufacturer.
+  datatype: boolean
+  description: Brake temperature status. True = High temperature False = Low temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Brake.PadWear:
+  datatype: uint8
+  description: Brake pad wear as percent. 0 = No Wear. 100 = Worn.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Brake.Temperature:
+  datatype: uint16
+  description: Brake temperature in Celsius.
+  max: 2500
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Speed:
+  datatype: float
+  description: Linear speed of a vehicle's wheel.
+  type: sensor
+  unit: km/h
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Tire:
+  description: Tire signals for wheel.
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Tire.IsPowerSufficient:
+  comment: If true the module power is sufficient to achieve the specified performance of the module.
+  datatype: boolean
+  description: Tire module power status. True = Sufficient power. False = Insufficient power.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Tire.IsPressureLow:
+  comment: If true the pressure is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire pressure status. True = Low tire pressure. False = Good tire pressure.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Tire.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire temperature status. True = High tire temperature. False = Good tire temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Tire.Pressure:
+  datatype: uint16
+  description: Tire pressure in kilo-Pascal.
+  max: 2500
+  type: sensor
+  unit: kPa
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos3.Tire.Temperature:
+  datatype: float
+  description: Tire temperature in Celsius.
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4:
+  description: Wheel signals for axle
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.AngularSpeed:
+  comment: Positive if wheel is trying to drive vehicle forward. Negative if wheel is trying to drive vehicle backward.
+  datatype: float
+  description: Angular (Rotational) speed of a vehicle's wheel.
+  type: sensor
+  unit: degrees/s
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Brake:
+  description: Brake signals for wheel
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Brake.FluidLevel:
+  datatype: uint8
+  description: Brake fluid level as percent. 0 = Empty. 100 = Full.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Brake.IsBrakesWorn:
+  datatype: boolean
+  description: Brake pad wear status. True = Worn. False = Not Worn.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Brake.IsFluidLevelLow:
+  datatype: boolean
+  description: Brake fluid level status. True = Brake fluid level low. False = Brake fluid level OK.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Brake.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the brake or vehicle manufacturer.
+  datatype: boolean
+  description: Brake temperature status. True = High temperature False = Low temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Brake.PadWear:
+  datatype: uint8
+  description: Brake pad wear as percent. 0 = No Wear. 100 = Worn.
+  max: 100
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Brake.Temperature:
+  datatype: uint16
+  description: Brake temperature in Celsius.
+  max: 2500
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Speed:
+  datatype: float
+  description: Linear speed of a vehicle's wheel.
+  type: sensor
+  unit: km/h
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Tire:
+  description: Tire signals for wheel.
+  type: branch
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Tire.IsPowerSufficient:
+  comment: If true the module power is sufficient to achieve the specified performance of the module.
+  datatype: boolean
+  description: Tire module power status. True = Sufficient power. False = Insufficient power.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Tire.IsPressureLow:
+  comment: If true the pressure is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire pressure status. True = Low tire pressure. False = Good tire pressure.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Tire.IsTemperatureHigh:
+  comment: If true the temperature is outside of a range recommended by the tire or vehicle manufacturer.
+  datatype: boolean
+  description: Tire temperature status. True = High tire temperature. False = Good tire temperature.
+  type: sensor
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Tire.Pressure:
+  datatype: uint16
+  description: Tire pressure in kilo-Pascal.
+  max: 2500
+  type: sensor
+  unit: kPa
+
+Trailer.Chassis.Axle.Axle12.Wheel.Pos4.Tire.Temperature:
+  datatype: float
+  description: Tire temperature in Celsius.
+  type: sensor
+  unit: celsius
+
+Trailer.Chassis.Axle.Axle12.WheelCount:
+  datatype: uint8
+  description: Number of wheels on the axle
+  type: attribute
+
+Trailer.Chassis.Axle.Axle12.WheelDiameter:
+  datatype: float
+  description: Diameter of wheels (rims without tires), in inches, as per ETRTO / TRA standard.
+  type: attribute
+  unit: inch
+
+Trailer.Chassis.Axle.Axle12.WheelWidth:
+  datatype: float
+  description: Width of wheels (rims without tires), in inches, as per ETRTO / TRA standard.
+  type: attribute
+  unit: inch
+
+Trailer.Chassis.Axle.Axle12.WheelsConfig:
+  allowed:
+  - Pos1
+  - Pos2
+  - Pos3
+  - Pos4
+  - Pos5
+  - Pos6
+  - Pos7
+  - Pos8
+  - Pos9
+  - Pos10
+  - Pos11
+  - Pos12
+  - Pos13
+  - Pos14
+  - Pos15
+  datatype: string[]
+  description: The current wheels configuration for the trailer in the identified axle
+  type: attribute
+
+Trailer.Chassis.AxleCount:
+  datatype: uint8
+  description: Number of Axles on the trailer
+  type: attribute
+
+Trailer.Chassis.AxlesConfig:
+  allowed:
+  - Axle1
+  - Axle2
+  - Axle3
+  - Axle4
+  - Axle5
+  - Axle6
+  - Axle7
+  - Axle8
+  - Axle9
+  - Axle10
+  - Axle11
+  - Axle12
+  - Axle13
+  - Axle14
+  - Axle15
+  datatype: string[]
+  description: The current axles configuration for the trailer
+  type: attribute
+
+Trailer.Chassis.Brake:
+  description: Brake system signals
+  type: branch
+
+Trailer.Chassis.Brake.IsDriverEmergencyBrakingDetected:
+  comment: Detection of emergency braking can trigger Emergency Brake Assist (EBA) to engage.
+  datatype: boolean
+  description: Indicates if emergency braking initiated by driver is detected. True = Emergency braking detected. False = Emergency braking not detected.
+  type: sensor
+
+Trailer.Chassis.Brake.PedalPosition:
+  datatype: uint8
+  description: Brake pedal position as percent. 0 = Not depressed. 100 = Fully depressed.
+  max: 100
+  min: 0
+  type: sensor
+  unit: percent
+
+Trailer.Chassis.ParkingBrake:
+  description: Parking brake signals
+  type: branch
+
+Trailer.Chassis.ParkingBrake.IsAutoApplyEnabled:
+  datatype: boolean
+  description: Indicates if parking brake will be automatically engaged when the vehicle engine is turned off.
+  type: actuator
+
+Trailer.Chassis.ParkingBrake.IsEngaged:
+  datatype: boolean
+  description: Parking brake status. True = Parking Brake is Engaged. False = Parking Brake is not Engaged.
+  type: actuator
+
+Trailer.Chassis.SteeringWheel:
+  description: Steering wheel signals
+  type: branch
+
+Trailer.Chassis.SteeringWheel.Angle:
+  datatype: int16
+  description: Steering wheel angle. Positive = degrees to the left. Negative = degrees to the right.
+  type: sensor
+  unit: degrees
+
+Trailer.Chassis.SteeringWheel.Extension:
+  datatype: uint8
+  description: Steering wheel column extension from dashboard. 0 = Closest to dashboard. 100 = Furthest from dashboard.
+  max: 100
+  min: 0
+  type: actuator
+  unit: percent
+
+Trailer.Chassis.SteeringWheel.Tilt:
+  datatype: uint8
+  description: Steering wheel column tilt. 0 = Lowest position. 100 = Highest position.
+  max: 100
+  min: 0
+  type: actuator
+  unit: percent
+
+Trailer.CustomerTrailerName:
+  datatype: string
+  description: The customer's name for the trailer
+  type: attribute
+
+Trailer.TrailerCount:
+  datatype: uint8
+  description: Number of connected Trailer.
+  type: attribute
+
+Trailer.TrailerIdentification:
+  description: Attributes that identify a trailer.
+  type: branch
+
+Trailer.TrailerIdentification.Brand:
+  datatype: string
+  description: Trailer brand or manufacturer.
+  type: attribute
+
+Trailer.TrailerIdentification.Model:
+  datatype: string
+  description: Trailer model.
+  type: attribute
+
+Trailer.TrailerIdentification.VIN:
+  datatype: string
+  default: 4FABP34W72K345678
+  description: 17-character trailer Identification Number (VIN) as defined by ISO 3779.
+  type: attribute
+
+Trailer.TrailerIdentification.WMI:
+  datatype: string
+  description: 3-character World Manufacturer Identification (WMI) as defined by ISO 3780.
+  type: attribute
+
+Trailer.TrailerIdentification.Year:
+  datatype: uint16
+  description: Model year of the trailer.
+  type: attribute
+
+Trailer.TrailerType:
+  allowed:
+  - UNDEFINED
+  - SEMI_TRAILER
+  - CENTER_AXLE_TRAILER
+  - FULL_TRAILER
+  - CONVERTER_DOLLY
+  - LINK_TRAILER
+  - TOWING_SEMI_TRAILER
+  - TOWING_CENTRE_AXLE_TRAILER
+  - TOWING_FULL_TRAILER
+  datatype: string
+  default: SEMI_TRAILER
+  description: Type of trailer as defined in ISO 11992-2
+  type: attribute
+
+Trailer.VersionTSS:
+  description: Supported Version of TSS.
+  type: branch
+
+Trailer.VersionTSS.Label:
+  comment: COVESA TSS project typically use dev for latest master, and empty string for released versions.
+  datatype: string
+  default: dev
+  description: Label to further describe the version.
+  type: attribute
+
+Trailer.VersionTSS.Major:
+  datatype: uint32
+  default: 1
+  description: Supported Version of TSS - Major version.
+  type: attribute
+
+Trailer.VersionTSS.Minor:
+  datatype: uint32
+  default: 0
+  description: Supported Version of TSS - Minor version.
+  type: attribute
+
+Trailer.VersionTSS.Patch:
+  datatype: uint32
+  default: 0
+  description: Supported Version of TSS - Patch version.
+  type: attribute

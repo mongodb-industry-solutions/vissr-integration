@@ -1,0 +1,1 @@
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"ts":{"$numberInt":"-1"}},"name":"ts_-1","expireAfterSeconds":{"$numberInt":"86400"}},{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"}],"uuid":"ac87ac7d04d64314872c6c47bbd1b6f4","collectionName":"messages","type":"collection"}
