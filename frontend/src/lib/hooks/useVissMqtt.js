@@ -20,8 +20,7 @@ export default function useVissMqtt() {
 
   const clientRef = useRef(null);
   const clientIdRef = useRef(`frontend_${Math.random().toString(16).slice(2, 10)}`);
-  
-  const vin = "MDBAX9C12XYZ1234";
+  const vin = process.env.NEXT_PUBLIC_MQTT_VIN || "MDBAX9C12XYZ1234";
 
   /**
    * Adds a new message to the messages array (keeps only last 20 messages)
@@ -164,7 +163,7 @@ export default function useVissMqtt() {
         return false;
       }
     },
-    [isConnected, addMessage]
+    [isConnected, addMessage, vin]
   );
 
   const clearMessages = useCallback(() => {

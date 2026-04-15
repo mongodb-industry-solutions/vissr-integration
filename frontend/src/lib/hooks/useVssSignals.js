@@ -12,8 +12,13 @@ function flattenVssTree(node, path = "", signals = []) {
     return signals;
   }
 
-  // If this node has a type, check if it's a leaf node (sensor or actuator)
-  if (node.type && (node.type === "sensor" || node.type === "actuator")) {
+  // If this node has a type, check if it's a leaf node we want to expose.
+  if (
+    node.type &&
+    (node.type === "sensor" ||
+      node.type === "actuator" ||
+      node.type === "attribute")
+  ) {
     // This is a leaf node - add it to signals
     const signal = {
       value: path,

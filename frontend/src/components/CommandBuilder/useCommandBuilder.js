@@ -53,7 +53,7 @@ export default function useCommandBuilder({
   isExpanded,
 }) {
   const [selectedSignals, setSelectedSignals] = useState(
-    defaultSelectedSignals
+    defaultSelectedSignals,
   );
   const [selectedCommand, setSelectedCommand] = useState("get");
   const [setValue, setSetValue] = useState("");
@@ -73,7 +73,7 @@ export default function useCommandBuilder({
 
   const updateFilter = (index, field, value) => {
     const updatedFilters = filters.map((filter, i) =>
-      i === index ? { ...filter, [field]: value } : filter
+      i === index ? { ...filter, [field]: value } : filter,
     );
     setFilters(updatedFilters);
   };
@@ -113,7 +113,7 @@ export default function useCommandBuilder({
     const nextValue =
       typeof valueOrEvent === "string"
         ? valueOrEvent
-        : valueOrEvent?.target?.value ?? valueOrEvent?.value ?? "";
+        : (valueOrEvent?.target?.value ?? valueOrEvent?.value ?? "");
     if (typeof nextValue === "string" && nextValue) {
       setSelectedCommand(nextValue);
       // Turn off advanced options when changing command type
@@ -163,7 +163,7 @@ export default function useCommandBuilder({
       ) {
         const hasPathsFilter = newFilters.some((f) => f.variant === "paths");
         const pathsArray = selectedSignals.map((signal) =>
-          signal.replace(/^Vehicle\./, "")
+          signal.replace(/^Vehicle\./, ""),
         );
 
         if (!hasPathsFilter) {
@@ -182,7 +182,7 @@ export default function useCommandBuilder({
       } else {
         // Remove auto-added paths filter when not needed
         newFilters = newFilters.filter(
-          (f) => !(f.variant === "paths" && selectedSignals.length <= 1)
+          (f) => !(f.variant === "paths" && selectedSignals.length <= 1),
         );
       }
 

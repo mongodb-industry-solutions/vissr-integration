@@ -19,6 +19,8 @@ const MapView = dynamic(() => import("@/components/MapView/MapView"), {
 });
 
 const DEFAULT_SELECTED_SIGNALS = ["Vehicle.Speed"];
+const VSS_JSON_PATH =
+  process.env.NEXT_PUBLIC_VSS_JSON_PATH || "/data/zod_vss.json";
 
 export default function Home() {
   const [isCommandBuilderExpanded, setIsCommandBuilderExpanded] =
@@ -58,7 +60,7 @@ export default function Home() {
     buildSubscribeCommand,
   } = activeHook;
 
-  const { signals, isLoading: isLoadingSignals } = useVssSignals();
+  const { signals, isLoading: isLoadingSignals } = useVssSignals(VSS_JSON_PATH);
 
   return (
     <div className="h-screen flex flex-col">

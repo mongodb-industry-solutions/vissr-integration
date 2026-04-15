@@ -223,7 +223,7 @@ export default function CommandBuilder({
                           <TextInput
                             label="Parameter"
                             placeholder={getParameterPlaceholder(
-                              filter.variant
+                              filter.variant,
                             )}
                             value={filter.parameter}
                             onChange={(e) =>
