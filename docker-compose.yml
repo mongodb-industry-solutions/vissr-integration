@@ -3,6 +3,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_VSS_JSON_PATH: ${NEXT_PUBLIC_VSS_JSON_PATH:-/data/zod_vss.json}
+        NEXT_PUBLIC_MQTT_VIN: ${NEXT_PUBLIC_MQTT_VIN:-MDBAX9C12XYZ1234}
     ports:
       - "8080:8080"
     env_file:
@@ -50,8 +53,12 @@ services:
     build:
       context: ./infra/vissr
       dockerfile: Dockerfile
+    depends_on:
+      mosquitto:
+        condition: service_started
     environment:
       - MQTT_BROKER_ADDR=mosquitto
+      - MQTT_VEHICLE_VIN=MDBAX9C12XYZ1234
     ports:
       - "8888:8080" # VISS WebSocket port (Container WS runs on 8080. Mapping to host 8888)
       - "8090:8888" # VISS HTTP port (Container HTTP runs on 8888. Mapping to host 8090)
@@ -60,6 +67,29 @@ services:
     volumes:
       - ./infra/vissr/data:/app/data
       - ./infra/vissr/config/uds-registration.json:/app/server/vissv2server/uds-registration.json
+
+  vissr-truck1:
+    profiles:
+      - truck
+    build:
+      context: ./infra/vissr
+      dockerfile: Dockerfile
+    depends_on:
+      mosquitto:
+        condition: service_started
+    entrypoint: ["/app/start-truck1.sh"]
+    environment:
+      - MQTT_BROKER_ADDR=mosquitto
+      - MQTT_VEHICLE_VIN=1FABP34W72K012345
+    ports:
+      - "9888:8080" # Truck1 VISS WebSocket port
+      - "9090:8888" # Truck1 VISS HTTP port
+      - "9600:8600" # Truck1 VISS AT server
+      - "9887:8887" # Truck1 VISS gRPC port
+    volumes:
+      - ./infra/vissr/data:/app/data
+      - ./infra/vissr/truck1-viss.him:/app/truck1-demo/viss.him:ro
+      - ./infra/vissr/config/uds-registration-truck1.json:/app/truck1-demo/uds-registration.json:ro
 
   mqtt-bridge:
     build:
@@ -71,7 +101,7 @@ services:
       - MQTT_BROKER_URL=mqtt://mosquitto:1883
       - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
       - DATABASE_NAME=${DATABASE_NAME:-vissr_db}
-      - VEHICLE_VINS=MDBAX9C12XYZ1234
+      - VEHICLE_VINS=${VEHICLE_VINS:-MDBAX9C12XYZ1234}
     depends_on:
       - mosquitto
 

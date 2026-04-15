@@ -8,6 +8,7 @@ const DATABASE_NAME = process.env.DATABASE_NAME || "vissr_db";
 const VEHICLE_VINS = (
   process.env.VEHICLE_VINS || "ULF001,MDBAX9C12XYZ1234"
 ).split(",");
+const PRIMARY_VEHICLE_VIN = VEHICLE_VINS[0];
 
 // Type mapping dictionary
 const signalTypeMap = {
@@ -20,12 +21,21 @@ const signalTypeMap = {
   "Vehicle.Chassis.Accelerator.PedalPosition": "int",
   "Vehicle.Chassis.Brake.PedalPosition": "int",
   "Vehicle.Chassis.SteeringWheel.Angle": "int",
+  "Vehicle.Chassis.Axle.Axle1.Wheel.Pos10.Brake.Temperature": "int",
+  "Vehicle.Chassis.Axle.Axle1.Wheel.Pos10.Tire.Pressure": "int",
   "Vehicle.CurrentLocation.Altitude": "double",
   "Vehicle.CurrentLocation.Heading": "double",
   "Vehicle.CurrentLocation.Latitude": "double",
   "Vehicle.CurrentLocation.Longitude": "double",
   "Vehicle.MotionManagement.Steering.SteeringWheel.Torque": "int",
+  "Vehicle.Trailer.IsConnected": "bool",
+  "Vehicle.VehicleIdentification.VIN": "string",
   "Vehicle.Speed": "double",
+  "Trailer.TrailerIdentification.VIN": "string",
+  "Trailer.TrailerType": "string",
+  "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Speed": "double",
+  "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Brake.Temperature": "int",
+  "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Tire.Pressure": "int",
 };
 
 // Function to convert string value to proper type
@@ -73,6 +83,11 @@ async function main() {
       const payloadString = message.toString();
       console.log(`Received message on topic: ${topic}`);
 
+      // Clean up the topic (remove quotes due to VISSR bug) and ignore
+      // anything that is not a VISSR response payload.
+      const cleanTopic = topic.replace(/"/g, '');
+      if (!cleanTopic.includes('/responses/')) return;
+
       // Log raw message to the messages collection
       await messagesCollection.insertOne({
         topic: topic,
@@ -82,13 +97,7 @@ async function main() {
 
       const payload = JSON.parse(payloadString);
 
-      // Clean up the topic (remove quotes due to VISSR bug)
-      const cleanTopic = topic.replace(/"/g, '');
-
-      if (!cleanTopic.includes('/responses/')) return;
-
-      // Single vehicle for demo purposes (matching the previous trigger logic)
-      const vin = "MDBAX9C12XYZ1234";
+      const vin = PRIMARY_VEHICLE_VIN;
 
       // Check if it's a subscription update or get response with data
       if (payload.action === "subscription" && payload.data) {

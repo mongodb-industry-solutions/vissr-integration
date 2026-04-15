@@ -5,7 +5,7 @@ WORKDIR /build
 RUN git clone https://github.com/COVESA/vissr.git . && \
     git checkout ad53564 && \
     sed -i 's/FVTAddr := "test.mosquitto.org"/FVTAddr := os.Getenv("MQTT_BROKER_ADDR")/' server/vissv2server/mqttMgr/mqttMgr.go && \
-    sed -i 's/vin := extractVin(string(response))/_ = response; vin := "MDBAX9C12XYZ1234"/' server/vissv2server/mqttMgr/mqttMgr.go
+    sed -i 's/vin := extractVin(string(response))/vin := os.Getenv("MQTT_VEHICLE_VIN"); if vin == "" { vin = extractVin(string(response)) }/' server/vissv2server/mqttMgr/mqttMgr.go
 
 # Build the server
 WORKDIR /build/server/vissv2server
@@ -43,7 +43,15 @@ COPY --from=builder /build/feeder /app/feeder
 
 # Add startup script
 COPY start.sh /app/start.sh
-RUN chmod +x /app/start.sh
+COPY start-truck1.sh /app/start-truck1.sh
+RUN chmod +x /app/start.sh /app/start-truck1.sh
+
+# Add truck1 demo runtime assets
+RUN mkdir -p /app/truck1-demo
+COPY truck1-viss.him /app/truck1-demo/viss.him
+COPY config/uds-registration-truck1.json /app/truck1-demo/uds-registration.json
+COPY amm-demo-trees/truck1.binary /app/server/vissv2server/forest/truck1.binary
+COPY amm-demo-trees/trailer1.binary /app/server/vissv2server/forest/trailer1.binary
 
 # Create the required Unix Domain Socket directory used for communication
 RUN mkdir -p /var/tmp/vissv2
