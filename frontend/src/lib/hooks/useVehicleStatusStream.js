@@ -6,9 +6,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
  * Custom hook for managing Server-Sent Events connection to vehicle_status change stream.
  * Provides real-time updates when the vehicle_status collection changes in MongoDB.
  *
+ * @param {string} vin - VIN used to scope the status stream
  * @returns {Object} Vehicle status state and connection information
  */
-export default function useVehicleStatusStream() {
+export default function useVehicleStatusStream(vin) {
   const [vehicleStatus, setVehicleStatus] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,8 +32,21 @@ export default function useVehicleStatusStream() {
       eventSourceRef.current.close();
     }
 
+    if (!vin) {
+      setVehicleStatus(null);
+      setIsConnected(false);
+      setIsLoading(false);
+      setError("No VIN configured for vehicle status stream");
+      return;
+    }
+
     try {
-      const eventSource = new EventSource("/api/vehicle-status/stream");
+      setIsLoading(true);
+      setError(null);
+      const params = new URLSearchParams({ vin });
+      const eventSource = new EventSource(
+        `/api/vehicle-status/stream?${params.toString()}`
+      );
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
@@ -108,7 +122,7 @@ export default function useVehicleStatusStream() {
       setError(err.message);
       setIsLoading(false);
     }
-  }, []);
+  }, [vin]);
 
   /**
    * Disconnects from the SSE stream

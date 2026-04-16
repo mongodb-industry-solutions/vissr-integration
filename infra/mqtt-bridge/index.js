@@ -5,10 +5,15 @@ const { MongoClient } = require("mongodb");
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || "mqtt://mosquitto:1883";
 const MONGODB_URI = process.env.MONGODB_URI || "mongodb://mongodb:27017";
 const DATABASE_NAME = process.env.DATABASE_NAME || "vissr_db";
-const VEHICLE_VINS = (
-  process.env.VEHICLE_VINS || "ULF001,MDBAX9C12XYZ1234"
-).split(",");
-const PRIMARY_VEHICLE_VIN = VEHICLE_VINS[0];
+const VEHICLE_VINS = (process.env.VEHICLE_VINS || "")
+  .split(",")
+  .map((vin) => vin.trim())
+  .filter(Boolean);
+const configuredVehicleVinSet = new Set(VEHICLE_VINS);
+const responseTopicToVin = new Map();
+const responseTopicSubscriptionToVin = new Map();
+const warnedResponseTopics = new Set();
+const warnedUnexpectedVins = new Set();
 
 // Type mapping dictionary
 const signalTypeMap = {
@@ -52,6 +57,77 @@ function convertValue(stringValue, bsonType) {
   }
 }
 
+function normalizeTopic(topic) {
+  return topic.replace(/"/g, "").trim();
+}
+
+function extractVinFromVehicleTopic(topic) {
+  const match = topic.match(/^\/([^/]+)\/Vehicle(?:\/|$)/);
+  return match ? match[1] : null;
+}
+
+function extractResponseTopicFromRequestPayload(payload) {
+  if (!payload || typeof payload.topic !== "string") {
+    return null;
+  }
+
+  return normalizeTopic(payload.topic);
+}
+
+function buildSubscriptionRouteKey(responseTopic, subscriptionId) {
+  return `${responseTopic}::${subscriptionId}`;
+}
+
+function rememberVinRouteFromRequest(cleanTopic, payloadString) {
+  const vin = extractVinFromVehicleTopic(cleanTopic);
+  if (!vin) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(payloadString);
+    const responseTopic = extractResponseTopicFromRequestPayload(payload);
+
+    if (responseTopic) {
+      responseTopicToVin.set(responseTopic, vin);
+    }
+  } catch (error) {
+    console.warn(
+      `Ignoring non-JSON vehicle command on topic ${cleanTopic}: ${error.message}`,
+    );
+  }
+
+  return vin;
+}
+
+function warnIfVinNotConfigured(vin) {
+  if (configuredVehicleVinSet.size === 0 || configuredVehicleVinSet.has(vin)) {
+    return;
+  }
+
+  if (!warnedUnexpectedVins.has(vin)) {
+    warnedUnexpectedVins.add(vin);
+    console.warn(
+      `Received telemetry for VIN ${vin} that is not listed in VEHICLE_VINS; continuing with dynamic upsert.`,
+    );
+  }
+}
+
+function resolveVinForResponse(cleanTopic, payload) {
+  if (
+    payload?.subscriptionId &&
+    responseTopicSubscriptionToVin.has(
+      buildSubscriptionRouteKey(cleanTopic, payload.subscriptionId),
+    )
+  ) {
+    return responseTopicSubscriptionToVin.get(
+      buildSubscriptionRouteKey(cleanTopic, payload.subscriptionId),
+    );
+  }
+
+  return responseTopicToVin.get(cleanTopic) || null;
+}
+
 async function main() {
   console.log("Connecting to MongoDB...");
   const client = new MongoClient(MONGODB_URI);
@@ -81,12 +157,19 @@ async function main() {
   mqttClient.on("message", async (topic, message) => {
     try {
       const payloadString = message.toString();
-      console.log(`Received message on topic: ${topic}`);
+      const cleanTopic = normalizeTopic(topic);
+      console.log(`Received message on topic: ${cleanTopic}`);
 
-      // Clean up the topic (remove quotes due to VISSR bug) and ignore
-      // anything that is not a VISSR response payload.
-      const cleanTopic = topic.replace(/"/g, '');
-      if (!cleanTopic.includes('/responses/')) return;
+      // VISSR publishes subscription updates on the caller-provided response topic
+      // (for example frontend/responses/<clientId>), so we learn VIN ownership from
+      // the original command topic /<VIN>/Vehicle and reuse it for later responses.
+      const requestVin = rememberVinRouteFromRequest(cleanTopic, payloadString);
+      if (requestVin) {
+        warnIfVinNotConfigured(requestVin);
+        return;
+      }
+
+      if (!cleanTopic.includes("/responses/")) return;
 
       // Log raw message to the messages collection
       await messagesCollection.insertOne({
@@ -96,8 +179,30 @@ async function main() {
       });
 
       const payload = JSON.parse(payloadString);
+      const vin = resolveVinForResponse(cleanTopic, payload);
+      if (!vin) {
+        if (!warnedResponseTopics.has(cleanTopic)) {
+          warnedResponseTopics.add(cleanTopic);
+          console.warn(
+            `Skipping response on topic ${cleanTopic}: no VIN mapping found.`,
+          );
+        }
+        return;
+      }
+      warnIfVinNotConfigured(vin);
 
-      const vin = PRIMARY_VEHICLE_VIN;
+      if (payload.subscriptionId) {
+        responseTopicSubscriptionToVin.set(
+          buildSubscriptionRouteKey(cleanTopic, payload.subscriptionId),
+          vin,
+        );
+      }
+
+      if (payload.action === "unsubscribe" && payload.subscriptionId) {
+        responseTopicSubscriptionToVin.delete(
+          buildSubscriptionRouteKey(cleanTopic, payload.subscriptionId),
+        );
+      }
 
       // Check if it's a subscription update or get response with data
       if (payload.action === "subscription" && payload.data) {

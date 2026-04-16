@@ -12,6 +12,14 @@ export const dynamic = "force-dynamic";
  * for real-time vehicle_status collection updates.
  */
 export async function GET(request) {
+  const vin = request.nextUrl.searchParams.get("vin");
+  if (!vin) {
+    return NextResponse.json(
+      { error: "vin query parameter is required" },
+      { status: 400 },
+    );
+  }
+
   // Create a TransformStream for SSE
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
@@ -50,9 +58,9 @@ export async function GET(request) {
   (async () => {
     try {
       // Send initial vehicle status
-      const initialStatus = await getVehicleStatus();
+      const initialStatus = await getVehicleStatus(vin);
       if (initialStatus) {
-        sendSSE({
+        await sendSSE({
           type: "initial",
           data: initialStatus,
           timestamp: new Date().toISOString(),
@@ -73,6 +81,13 @@ export async function GET(request) {
           }
         },
         {
+          pipeline: [
+            {
+              $match: {
+                "fullDocument.Vehicle.VehicleIdentification.VIN": vin,
+              },
+            },
+          ],
           onError: (error) => {
             if (!isClosed) {
               console.error("Change stream error:", error);

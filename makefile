@@ -14,6 +14,7 @@ MQTT_VIN ?= $(DEFAULT_MQTT_VIN)
 VEHICLE_VINS ?= $(MQTT_VIN)
 
 COMPOSE_PROFILES :=
+ALL_COMPOSE_PROFILES := --profile local --profile truck
 
 ifeq ($(DB),local)
 COMPOSE_PROFILES += --profile local
@@ -25,13 +26,17 @@ endif
 
 COMPOSE_ENV = VSS_JSON_PATH=$(VSS_JSON_PATH) MQTT_VIN=$(MQTT_VIN) VEHICLE_VINS=$(VEHICLE_VINS)
 
-.PHONY: build start start-local start-truck stop clean
+.PHONY: build start restart start-local start-truck stop clean
 
 build:
 	$(COMPOSE_ENV) docker compose $(COMPOSE_PROFILES) build
 
 start:
 	$(COMPOSE_ENV) docker compose $(COMPOSE_PROFILES) up --build -d
+
+restart:
+	docker compose $(ALL_COMPOSE_PROFILES) down --remove-orphans
+	$(MAKE) start PROFILE=$(PROFILE) DB=$(DB) VSS_JSON_PATH=$(VSS_JSON_PATH) MQTT_VIN=$(MQTT_VIN) VEHICLE_VINS=$(VEHICLE_VINS)
 
 start-local:
 	$(MAKE) start DB=local

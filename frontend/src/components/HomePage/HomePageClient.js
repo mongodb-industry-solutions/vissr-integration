@@ -26,12 +26,13 @@ export default function HomePageClient({ vssJsonPath, mqttVin }) {
   const [isVehicleStatusExpanded, setIsVehicleStatusExpanded] = useState(true);
   const [isMapViewExpanded, setIsMapViewExpanded] = useState(false);
   const [protocol, setProtocol] = useState("websocket");
+  const activeVehicleVin = mqttVin;
 
   const {
     vehicleStatus,
     isLoading: isLoadingVehicleStatus,
     error: vehicleStatusError,
-  } = useVehicleStatusStream();
+  } = useVehicleStatusStream(activeVehicleVin);
 
   const wsHook = useVissWebSocket();
   const mqttHook = useVissMqtt(mqttVin);
