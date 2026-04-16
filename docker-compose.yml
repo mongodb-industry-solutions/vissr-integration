@@ -3,15 +3,15 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_VSS_JSON_PATH: ${NEXT_PUBLIC_VSS_JSON_PATH:-/data/zod_vss.json}
-        NEXT_PUBLIC_MQTT_VIN: ${NEXT_PUBLIC_MQTT_VIN:-MDBAX9C12XYZ1234}
     ports:
       - "8080:8080"
     env_file:
       - .env
     environment:
-      - MONGODB_URI=${MONGODB_URI}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017/vissr-integration?replicaSet=rs0}
+      - DATABASE_NAME=${DATABASE_NAME:-vissr-integration}
+      - VSS_JSON_PATH=${VSS_JSON_PATH:-/data/zod_vss.json}
+      - MQTT_VIN=${MQTT_VIN:-MDBAX9C12XYZ1234}
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -58,7 +58,7 @@ services:
         condition: service_started
     environment:
       - MQTT_BROKER_ADDR=mosquitto
-      - MQTT_VEHICLE_VIN=MDBAX9C12XYZ1234
+      - MQTT_VEHICLE_VIN=${MQTT_VIN:-MDBAX9C12XYZ1234}
     ports:
       - "8888:8080" # VISS WebSocket port (Container WS runs on 8080. Mapping to host 8888)
       - "8090:8888" # VISS HTTP port (Container HTTP runs on 8888. Mapping to host 8090)
@@ -99,8 +99,8 @@ services:
       - .env
     environment:
       - MQTT_BROKER_URL=mqtt://mosquitto:1883
-      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
-      - DATABASE_NAME=${DATABASE_NAME:-vissr_db}
+      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017/vissr-integration?replicaSet=rs0}
+      - DATABASE_NAME=${DATABASE_NAME:-vissr-integration}
       - VEHICLE_VINS=${VEHICLE_VINS:-MDBAX9C12XYZ1234}
     depends_on:
       - mosquitto
