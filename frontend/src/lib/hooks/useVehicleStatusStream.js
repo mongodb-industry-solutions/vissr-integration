@@ -30,19 +30,27 @@ export default function useVehicleStatusStream(vin) {
     // Clean up existing connection
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
+      eventSourceRef.current = null;
     }
 
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    reconnectAttemptsRef.current = 0;
+    setVehicleStatus(null);
+    setLastUpdate(null);
+    setIsConnected(false);
+    setError(null);
+
     if (!vin) {
-      setVehicleStatus(null);
-      setIsConnected(false);
       setIsLoading(false);
-      setError("No VIN configured for vehicle status stream");
       return;
     }
 
     try {
       setIsLoading(true);
-      setError(null);
       const params = new URLSearchParams({ vin });
       const eventSource = new EventSource(
         `/api/vehicle-status/stream?${params.toString()}`
@@ -51,6 +59,7 @@ export default function useVehicleStatusStream(vin) {
 
       eventSource.onopen = () => {
         setIsConnected(true);
+        setIsLoading(false);
         setError(null);
         reconnectAttemptsRef.current = 0;
         console.log("Vehicle status stream connected");
@@ -72,6 +81,7 @@ export default function useVehicleStatusStream(vin) {
               // Update from change stream
               if (message.data.document) {
                 setVehicleStatus(message.data.document);
+                setIsLoading(false);
                 setLastUpdate(message.timestamp);
               }
               break;
@@ -85,6 +95,7 @@ export default function useVehicleStatusStream(vin) {
               // Error from server
               console.error("Server error:", message.message);
               setError(message.message);
+              setIsLoading(false);
               break;
 
             default:
@@ -130,6 +141,7 @@ export default function useVehicleStatusStream(vin) {
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
     if (eventSourceRef.current) {
       eventSourceRef.current.close();

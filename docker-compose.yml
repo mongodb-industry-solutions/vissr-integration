@@ -12,6 +12,7 @@ services:
       - DATABASE_NAME=${DATABASE_NAME:-vissr-integration}
       - VSS_JSON_PATH=${VSS_JSON_PATH:-/data/zod_vss.json}
       - MQTT_VIN=${MQTT_VIN:-MDBAX9C12XYZ1234}
+      - VEHICLE_VINS=${VEHICLE_VINS:-MDBAX9C12XYZ1234}
 
   mosquitto:
     image: eclipse-mosquitto:2

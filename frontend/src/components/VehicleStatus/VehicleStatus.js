@@ -6,6 +6,8 @@ import ExpandableSection from "@/components/ExpandableSection/ExpandableSection"
 
 export default function VehicleStatus({
   vehicleStatus,
+  selectedVin,
+  hasVehicles = false,
   isLoading,
   error,
   isExpanded = true,
@@ -23,7 +25,15 @@ export default function VehicleStatus({
       onToggleExpand={onToggleExpand}
     >
       <div className="flex-1 min-h-0 overflow-auto mt-4">
-        {isLoading && !vehicleStatus ? (
+        {!selectedVin ? (
+          <div className="flex items-center justify-center h-full">
+            <Subtitle>
+              {hasVehicles
+                ? "Select a vehicle to view its status"
+                : "No vehicles connected"}
+            </Subtitle>
+          </div>
+        ) : isLoading && !vehicleStatus ? (
           <div className="flex items-center justify-center h-full">
             <Subtitle>Loading vehicle status...</Subtitle>
           </div>
@@ -35,7 +45,7 @@ export default function VehicleStatus({
           <Code language="json">{formatJSON(vehicleStatus)}</Code>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <Subtitle>No vehicle status data available</Subtitle>
+            <Subtitle>No vehicle status data available for {selectedVin}</Subtitle>
           </div>
         )}
       </div>

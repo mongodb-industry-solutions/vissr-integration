@@ -8,10 +8,10 @@ import { insertVissMessage } from "@/lib/db/messages";
  * Custom hook for managing VISS MQTT connections and message handling.
  * Provides connection management, message sending, and response tracking functionality.
  *
- * @param {string} vin - Vehicle VIN used for MQTT command topics
+ * @param {string|null} vin - Vehicle VIN used for MQTT command topics
  * @returns {Object} MQTT state and control functions
  */
-export default function useVissMqtt(vin = "MDBAX9C12XYZ1234") {
+export default function useVissMqtt(vin) {
   const [hostIP, setHostIP] = useState("127.0.0.1");
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -145,6 +145,11 @@ export default function useVissMqtt(vin = "MDBAX9C12XYZ1234") {
 
       if (!message.trim()) {
         addMessage("error", "Cannot send empty message");
+        return false;
+      }
+
+      if (!vin) {
+        addMessage("error", "Select a vehicle before sending MQTT commands");
         return false;
       }
 
