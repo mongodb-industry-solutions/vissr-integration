@@ -3,7 +3,7 @@ const { MongoClient } = require("mongodb");
 
 // Environment variables
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || "mqtt://mosquitto:1883";
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb://mongodb:27017";
+const MONGODB_URI = process.env.MONGODB_URI;
 const DATABASE_NAME = process.env.DATABASE_NAME || "vissr_db";
 const VEHICLE_VINS = (process.env.VEHICLE_VINS || "")
   .split(",")
@@ -129,6 +129,10 @@ function resolveVinForResponse(cleanTopic, payload) {
 }
 
 async function main() {
+  if (!MONGODB_URI) {
+    throw new Error("MONGODB_URI environment variable is required but not set");
+  }
+
   console.log("Connecting to MongoDB...");
   const client = new MongoClient(MONGODB_URI);
   await client.connect();
@@ -175,7 +179,7 @@ async function main() {
       await messagesCollection.insertOne({
         topic: topic,
         payload: payloadString,
-        ts: new Date()
+        ts: new Date(),
       });
 
       const payload = JSON.parse(payloadString);

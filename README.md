@@ -79,23 +79,32 @@ The easiest way to run the entire stack is using Docker Compose.
 ### 1. Clone the Repository and Configure Environment
 
 ```bash
-cp .env.example .env.local
-# Edit .env.local to add your MONGODB_URI if using Atlas.
-# Otherwise, it defaults to the local Docker MongoDB container.
+cp .env.example .env
+# Set MONGODB_URI only if you are running against Atlas or another external MongoDB.
+# Local Docker runs ignore it and always use mongodb://mongodb:27017/?directConnection=true.
 ```
 
 ### 2. Launch the Application Stack
 
-You can launch the default stack (Frontend, Mosquitto, MQTT Bridge, MongoDB, and 1 Truck) using:
+You can launch the default local stack (Frontend, Mosquitto, MQTT Bridge, MongoDB, and 1 Truck) using:
 
 ```bash
-docker compose --profile local up -d
+make start
+# or: docker compose -f docker-compose.yml -f docker-compose.local.yml up --build -d
 ```
 
 To simulate a fleet with **two trucks**, add the `truck` profile:
 
 ```bash
-docker compose --profile local --profile truck up -d
+make start PROFILE=truck
+# or: docker compose -f docker-compose.yml -f docker-compose.local.yml --profile truck up --build -d
+```
+
+To run without the bundled MongoDB container, set `MONGODB_URI` in `.env` and start the base stack:
+
+```bash
+make start DB=atlas
+# or: docker compose up --build -d
 ```
 
 ### 3. Connect and Explore

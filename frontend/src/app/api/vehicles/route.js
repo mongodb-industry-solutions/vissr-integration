@@ -17,10 +17,11 @@ export async function GET() {
     const discoveredVehicles = await listVehicles();
     const configuredVehicles = parseConfiguredVehicleVins();
 
-    const vehicles =
-      configuredVehicles.length > 0
+    const vehicles = configuredVehicles.length > 0
+      ? discoveredVehicles.length > 0
         ? configuredVehicles.filter((vin) => discoveredVehicles.includes(vin))
-        : discoveredVehicles;
+        : configuredVehicles
+      : discoveredVehicles;
 
     return NextResponse.json({ vehicles });
   } catch (error) {

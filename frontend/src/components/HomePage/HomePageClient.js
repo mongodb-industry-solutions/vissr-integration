@@ -21,7 +21,10 @@ const MapView = dynamic(() => import("@/components/MapView/MapView"), {
 const DEFAULT_SELECTED_SIGNALS = ["Vehicle.Speed"];
 const VEHICLE_REFRESH_INTERVAL_MS = 10000;
 
-export default function HomePageClient({ vssJsonPath }) {
+export default function HomePageClient({
+  vssJsonPath,
+  persistWebSocketMessageAction,
+}) {
   const [isCommandBuilderExpanded, setIsCommandBuilderExpanded] =
     useState(true);
   const [isMessagesExpanded, setIsMessagesExpanded] = useState(false);
@@ -99,7 +102,10 @@ export default function HomePageClient({ vssJsonPath }) {
     lastUpdate: vehicleStatusLastUpdate,
   } = useVehicleStatusStream(activeVehicleVin);
 
-  const wsHook = useVissWebSocket();
+  const wsHook = useVissWebSocket(
+    activeVehicleVin,
+    persistWebSocketMessageAction
+  );
   const mqttHook = useVissMqtt(activeVehicleVin);
   const activeHook = protocol === "websocket" ? wsHook : mqttHook;
 
