@@ -3,9 +3,9 @@ import "leaflet/dist/leaflet.css";
 import { Providers } from "./providers";
 
 export const metadata = {
-  title: "VISS WebSocket Client",
+  title: "Connected Trucks",
   description:
-    "WebSocket client for connecting to VISS (Vehicle Information Service Specification) servers and sending vehicle data commands",
+    "Demo application showing how VISS standard vehicle data flows from VISSR simulators into MongoDB and back to drivers via real-time alerts.",
 };
 
 export default function RootLayout({ children }) {
