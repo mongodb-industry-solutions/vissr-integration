@@ -89,14 +89,32 @@ export default function useVissMqtt(vin) {
               });
             }
 
-            // Track subscription IDs
-            if (parsedMessage.subscriptionId && parsedMessage.requestId) {
+            // Subscription tracking is driven exclusively by server
+            // acknowledgements so the map mirrors actual server state:
+            //   - register on `subscribe` ack
+            //   - unregister on `unsubscribe` ack
+            // Streaming notifications (`action: "subscription"`) are ignored
+            // here to avoid resurrecting an entry that has just been removed.
+            if (
+              parsedMessage.action === "subscribe" &&
+              parsedMessage.subscriptionId
+            ) {
               setActiveSubscriptions((prev) => {
                 const newMap = new Map(prev);
                 newMap.set(parsedMessage.subscriptionId, {
                   requestId: parsedMessage.requestId,
                   timestamp: new Date().toLocaleTimeString(),
                 });
+                return newMap;
+              });
+            } else if (
+              parsedMessage.action === "unsubscribe" &&
+              parsedMessage.subscriptionId
+            ) {
+              setActiveSubscriptions((prev) => {
+                if (!prev.has(parsedMessage.subscriptionId)) return prev;
+                const newMap = new Map(prev);
+                newMap.delete(parsedMessage.subscriptionId);
                 return newMap;
               });
             }
@@ -221,18 +239,10 @@ export default function useVissMqtt(vin) {
 
   const unsubscribeFromId = useCallback(
     (subscriptionId) => {
+      // The active-subscriptions map is updated only when the server confirms
+      // the unsubscribe via the onmessage handler.
       const command = buildUnsubscribeCommand(subscriptionId);
-      const success = sendCommand(command);
-
-      if (success) {
-        setActiveSubscriptions((prev) => {
-          const newMap = new Map(prev);
-          newMap.delete(subscriptionId);
-          return newMap;
-        });
-      }
-
-      return success;
+      return sendCommand(command);
     },
     [buildUnsubscribeCommand, sendCommand]
   );

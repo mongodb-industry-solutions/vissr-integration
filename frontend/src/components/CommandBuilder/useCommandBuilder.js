@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import { groupSignalsByRoot } from "@/lib/vss/roots";
 
 const convertToStringValues = (obj) => {
   if (Array.isArray(obj)) {
@@ -99,16 +100,6 @@ export default function useCommandBuilder({
     return allVariants.filter((variant) => !usedVariants.includes(variant));
   };
 
-  const getLatestSubscriptionId = useCallback(() => {
-    if (!activeSubscriptions || activeSubscriptions.size === 0) {
-      return "1"; // Default fallback
-    }
-
-    // Get the most recent subscription ID (last entry in the Map)
-    const subscriptionIds = Array.from(activeSubscriptions.keys());
-    return subscriptionIds[subscriptionIds.length - 1] || "1";
-  }, [activeSubscriptions]);
-
   const handleCommandTypeChange = (valueOrEvent) => {
     const nextValue =
       typeof valueOrEvent === "string"
@@ -157,14 +148,18 @@ export default function useCommandBuilder({
       }
 
       // Auto-add paths filter for multiple signals (only for get/subscribe)
-      if (
+      // and only when all signals share a single VSS root. In the mixed-root
+      // case, each generated command gets its own paths filter injected at
+      // build time, so we don't surface a (necessarily wrong) shared one here.
+      const groups = groupSignalsByRoot(selectedSignals);
+      const isSingleRootMulti =
         (selectedCommand === "get" || selectedCommand === "subscribe") &&
-        selectedSignals.length > 1
-      ) {
+        selectedSignals.length > 1 &&
+        groups.length === 1;
+
+      if (isSingleRootMulti) {
         const hasPathsFilter = newFilters.some((f) => f.variant === "paths");
-        const pathsArray = selectedSignals.map((signal) =>
-          signal.replace(/^Vehicle\./, ""),
-        );
+        const pathsArray = groups[0].paths;
 
         if (!hasPathsFilter) {
           newFilters.push({
@@ -180,10 +175,8 @@ export default function useCommandBuilder({
           };
         }
       } else {
-        // Remove auto-added paths filter when not needed
-        newFilters = newFilters.filter(
-          (f) => !(f.variant === "paths" && selectedSignals.length <= 1),
-        );
+        // Remove auto-added paths filter when not needed (mixed-root or <=1 signal)
+        newFilters = newFilters.filter((f) => f.variant !== "paths");
       }
 
       return newFilters;
@@ -197,78 +190,136 @@ export default function useCommandBuilder({
       return;
     }
 
-    let command;
-    const options = {};
-
-    // Add filters if any exist and command supports them
-    // Auto-added filters (timebased for subscribe, paths for multiple signals) are always included
-    const shouldIncludeFilters =
-      filters.length > 0 &&
-      (includeFilter ||
-        (selectedCommand === "subscribe" &&
-          filters.some((f) => f.variant === "timebased")) ||
-        (selectedSignals.length > 1 &&
-          filters.some((f) => f.variant === "paths"))) &&
-      selectedCommand !== "set" &&
-      selectedCommand !== "unsubscribe";
-
-    if (shouldIncludeFilters) {
-      const filterObjects = filters.map((filter) => ({
-        variant: filter.variant,
-        ...(filter.parameter
-          ? {
-              parameter: parseFilterParameter(filter.parameter, filter.variant),
-            }
-          : {}),
-      }));
-
-      // Use object for single filter, array for multiple filters
-      options.filter =
-        filterObjects.length === 1 ? filterObjects[0] : filterObjects;
-    }
-
-    // Handle path changes for multiple signals
-    let commandSignals = selectedSignals;
-    let commandPath = selectedSignals;
-
+    // Unsubscribe: nothing to send when there are no tracked subscriptions.
     if (
-      (selectedCommand === "get" || selectedCommand === "subscribe") &&
-      selectedSignals.length > 1
+      selectedCommand === "unsubscribe" &&
+      (!activeSubscriptions || activeSubscriptions.size === 0)
     ) {
-      // When multiple signals and paths filter exists, use "Vehicle" as main path
-      commandPath = ["Vehicle"];
+      setGeneratedCommand("");
+      return;
     }
 
-    if (selectedCommand === "get") {
-      command = buildGetCommand(commandPath, {
-        includeRequestId: false,
-        ...options,
-      });
-    } else if (selectedCommand === "set") {
-      command = buildSetCommand(selectedSignals[0], setValue || "0", {
-        includeRequestId: false,
-        ...options,
-      });
-    } else if (selectedCommand === "subscribe") {
-      command = buildSubscribeCommand(commandPath, {
-        includeRequestId: false,
-        ...options,
-      });
+    // Build the user-defined filters once (timebased, range, change, ...).
+    // Auto-paths is excluded here because in the multi-root case each
+    // command needs its OWN paths filter; we re-inject it per group below.
+    const buildUserFilters = ({ includePaths }) => {
+      const shouldIncludeFilters =
+        filters.length > 0 &&
+        (includeFilter ||
+          (selectedCommand === "subscribe" &&
+            filters.some((f) => f.variant === "timebased")) ||
+          (selectedSignals.length > 1 &&
+            filters.some((f) => f.variant === "paths"))) &&
+        selectedCommand !== "set" &&
+        selectedCommand !== "unsubscribe";
+
+      if (!shouldIncludeFilters) return [];
+
+      return filters
+        .filter((f) => includePaths || f.variant !== "paths")
+        .map((filter) => ({
+          variant: filter.variant,
+          ...(filter.parameter
+            ? {
+                parameter: parseFilterParameter(
+                  filter.parameter,
+                  filter.variant,
+                ),
+              }
+            : {}),
+        }));
+    };
+
+    const wrapFilters = (filterObjects) => {
+      if (filterObjects.length === 0) return undefined;
+      return filterObjects.length === 1 ? filterObjects[0] : filterObjects;
+    };
+
+    const groups = groupSignalsByRoot(selectedSignals);
+    const isMultiRoot = groups.length > 1;
+
+    let preview;
+
+    if (selectedCommand === "set") {
+      // Set always targets a single signal under a single root.
+      const baseFilters = buildUserFilters({ includePaths: true });
+      const options = { includeRequestId: false };
+      const filterValue = wrapFilters(baseFilters);
+      if (filterValue !== undefined) options.filter = filterValue;
+
+      preview = buildSetCommand(selectedSignals[0], setValue || "0", options);
     } else if (selectedCommand === "unsubscribe") {
-      command = {
+      // Always cancel every currently-tracked subscription. One unsubscribe
+      // per id; the empty case is handled by the early-return above.
+      const ids = Array.from(activeSubscriptions.keys());
+      const commands = ids.map((subscriptionId) => ({
         action: "unsubscribe",
-        subscriptionId: getLatestSubscriptionId(),
+        subscriptionId,
+      }));
+      preview = commands.length === 1 ? commands[0] : commands;
+    } else if (selectedCommand === "get" || selectedCommand === "subscribe") {
+      const builder =
+        selectedCommand === "get" ? buildGetCommand : buildSubscribeCommand;
+
+      const buildForGroup = (group) => {
+        // In the single-root case the visible auto-paths filter is correct
+        // and we forward it as-is. In the multi-root case the visible list
+        // never carries a paths filter, so we drop any stale paths entry
+        // and inject a per-group one below.
+        const otherFilters = buildUserFilters({ includePaths: !isMultiRoot });
+        const groupFilters = [...otherFilters];
+
+        if (
+          isMultiRoot &&
+          group.paths.length > 1 &&
+          !groupFilters.some((f) => f.variant === "paths")
+        ) {
+          groupFilters.push({
+            variant: "paths",
+            parameter: group.paths,
+          });
+        }
+
+        const options = { includeRequestId: false };
+        const filterValue = wrapFilters(groupFilters);
+        if (filterValue !== undefined) options.filter = filterValue;
+
+        // When a paths filter is in play, the main path is just the root
+        // (e.g. "Vehicle" or "Trailer"); otherwise it's the single signal.
+        const mainPath =
+          group.paths.length > 1
+            ? [group.root]
+            : [
+                group.paths[0]
+                  ? `${group.root}.${group.paths[0]}`
+                  : group.root,
+              ];
+
+        return builder(mainPath, options);
       };
+
+      if (isMultiRoot) {
+        preview = groups.map(buildForGroup);
+      } else {
+        preview = buildForGroup(groups[0]);
+      }
     } else {
-      command = {};
+      preview = {};
     }
 
-    // Always show the next requestId in the preview, but don't change it on text input
-    if (command && typeof command === "object") {
-      command.requestId = requestIdCounter.toString();
+    // Always show the next requestId in the preview, but don't change it on text input.
+    // For multi-command arrays, suffix the requestId per command so each is unique.
+    if (Array.isArray(preview)) {
+      preview.forEach((cmd, i) => {
+        if (cmd && typeof cmd === "object") {
+          cmd.requestId = `${requestIdCounter}-${i}`;
+        }
+      });
+    } else if (preview && typeof preview === "object") {
+      preview.requestId = requestIdCounter.toString();
     }
 
-    setGeneratedCommand(JSON.stringify(command, null, 2));
+    setGeneratedCommand(JSON.stringify(preview, null, 2));
   }, [
     selectedSignals,
     selectedCommand,
@@ -280,7 +331,6 @@ export default function useCommandBuilder({
     buildSetCommand,
     buildSubscribeCommand,
     activeSubscriptions,
-    getLatestSubscriptionId,
   ]);
 
   const validateJson = (jsonString) => {
@@ -308,11 +358,18 @@ export default function useCommandBuilder({
   const handleSend = () => {
     if (validateJson(generatedCommand)) {
       try {
-        const cmd = JSON.parse(generatedCommand);
-        // Add or update requestId with current counter value
-        cmd.requestId = requestIdCounter.toString();
-        onSendCommand?.(cmd);
-        // Increment counter for next command
+        const parsed = JSON.parse(generatedCommand);
+        const list = Array.isArray(parsed) ? parsed : [parsed];
+
+        list.forEach((cmd, i) => {
+          if (!cmd || typeof cmd !== "object") return;
+          cmd.requestId =
+            list.length > 1
+              ? `${requestIdCounter}-${i}`
+              : requestIdCounter.toString();
+          onSendCommand?.(cmd);
+        });
+
         setRequestIdCounter((prev) => prev + 1);
       } catch (e) {
         // Parent should log error via hook
