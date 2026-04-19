@@ -7,12 +7,17 @@ import { useState, useRef, useCallback, useEffect } from "react";
  * Provides connection management, message sending, and response tracking functionality.
  *
  * @param {string|null} vin - Vehicle VIN bound to the active WebSocket session
+ * @param {string} defaultHost - Preferred WebSocket host for the selected vehicle
  * @param {(vin: string | null, message: Object) => Promise<Object>} persistWebSocketMessageAction
  *   Server action used to log raw VISS messages and materialize subscription data.
  * @returns {Object} WebSocket state and control functions
  */
-export default function useVissWebSocket(vin, persistWebSocketMessageAction) {
-  const [hostIP, setHostIP] = useState("127.0.0.1");
+export default function useVissWebSocket(
+  vin,
+  defaultHost,
+  persistWebSocketMessageAction,
+) {
+  const [hostIP, setHostIP] = useState(defaultHost || "127.0.0.1");
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -48,6 +53,14 @@ export default function useVissWebSocket(vin, persistWebSocketMessageAction) {
     },
     [persistWebSocketMessageAction]
   );
+
+  useEffect(() => {
+    if (isConnected || !defaultHost) {
+      return;
+    }
+
+    setHostIP(defaultHost);
+  }, [defaultHost, isConnected]);
 
   useEffect(() => {
     if (!isConnected) {

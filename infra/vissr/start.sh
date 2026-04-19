@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euo pipefail
+
 # Create Unix Domain Socket directory
 mkdir -p /var/tmp/vissv2
 chmod 777 /var/tmp/vissv2
@@ -10,6 +12,9 @@ memcached -d -u root --unix-mask=755 --unix-socket=/var/tmp/vissv2/memcacheDB.so
 
 # Wait a moment for memcached to be ready
 sleep 1
+
+# Install the default runtime config into the server directory before startup.
+cp /app/vehicle-definitions/default/uds-registration.json /app/server/vissv2server/uds-registration.json
 
 # Start the VISS server with memcache and mqtt enabled
 echo "Starting VISSv2 Server..."

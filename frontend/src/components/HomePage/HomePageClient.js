@@ -21,8 +21,38 @@ const MapView = dynamic(() => import("@/components/MapView/MapView"), {
 const DEFAULT_SELECTED_SIGNALS = ["Vehicle.Speed"];
 const VEHICLE_REFRESH_INTERVAL_MS = 10000;
 
+function normalizeVehicleRecord(vehicle) {
+  if (!vehicle) {
+    return null;
+  }
+
+  if (typeof vehicle === "string") {
+    return {
+      vin: vehicle,
+      label: vehicle,
+      profile: null,
+      vssJsonPath: null,
+      websocketHost: null,
+      websocketPort: null,
+    };
+  }
+
+  if (!vehicle.vin) {
+    return null;
+  }
+
+  return {
+    vin: vehicle.vin,
+    label: vehicle.label || vehicle.vin,
+    profile: vehicle.profile || null,
+    vssJsonPath: vehicle.vssJsonPath || null,
+    websocketHost: vehicle.websocketHost || null,
+    websocketPort: vehicle.websocketPort || null,
+  };
+}
+
 export default function HomePageClient({
-  vssJsonPath,
+  defaultVssJsonPath,
   persistWebSocketMessageAction,
 }) {
   const [isCommandBuilderExpanded, setIsCommandBuilderExpanded] =
@@ -35,6 +65,8 @@ export default function HomePageClient({
   const [selectedVin, setSelectedVin] = useState(null);
   const [isLoadingVehicles, setIsLoadingVehicles] = useState(true);
   const [vehiclesError, setVehiclesError] = useState(null);
+  const [fallbackVssJsonPath, setFallbackVssJsonPath] =
+    useState(defaultVssJsonPath);
 
   const hasLoadedVehiclesRef = useRef(false);
   const isMountedRef = useRef(true);
@@ -56,14 +88,22 @@ export default function HomePageClient({
         return;
       }
 
-      const nextVehicles = Array.isArray(payload.vehicles) ? payload.vehicles : [];
+      const nextVehicles = Array.isArray(payload.vehicles)
+        ? payload.vehicles.map((vehicle) => normalizeVehicleRecord(vehicle)).filter(Boolean)
+        : [];
       setVehicles(nextVehicles);
+      setFallbackVssJsonPath(
+        payload.fallbackVssJsonPath || defaultVssJsonPath,
+      );
       setSelectedVin((currentVin) => {
-        if (currentVin && nextVehicles.includes(currentVin)) {
+        if (
+          currentVin &&
+          nextVehicles.some((vehicle) => vehicle.vin === currentVin)
+        ) {
           return currentVin;
         }
 
-        return nextVehicles[0] ?? null;
+        return nextVehicles[0]?.vin ?? null;
       });
       setVehiclesError(null);
     } catch (error) {
@@ -78,7 +118,7 @@ export default function HomePageClient({
         setIsLoadingVehicles(false);
       }
     }
-  }, []);
+  }, [defaultVssJsonPath]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -92,7 +132,12 @@ export default function HomePageClient({
     };
   }, [loadVehicles]);
 
-  const activeVehicleVin = selectedVin;
+  const selectedVehicle =
+    vehicles.find((vehicle) => vehicle.vin === selectedVin) || null;
+  const activeVehicleVin = selectedVehicle?.vin || selectedVin;
+  const activeVehicleVssJsonPath =
+    selectedVehicle?.vssJsonPath || fallbackVssJsonPath || defaultVssJsonPath;
+  const preferredWebSocketHost = selectedVehicle?.websocketHost || "127.0.0.1";
 
   const {
     vehicleStatus,
@@ -104,6 +149,7 @@ export default function HomePageClient({
 
   const wsHook = useVissWebSocket(
     activeVehicleVin,
+    preferredWebSocketHost,
     persistWebSocketMessageAction
   );
   const mqttHook = useVissMqtt(activeVehicleVin);
@@ -126,7 +172,7 @@ export default function HomePageClient({
     buildSubscribeCommand,
   } = activeHook;
 
-  const { signals } = useVssSignals(vssJsonPath);
+  const { signals } = useVssSignals(activeVehicleVssJsonPath);
 
   return (
     <div className="h-screen flex flex-col">

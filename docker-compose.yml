@@ -13,6 +13,7 @@ services:
       VSS_JSON_PATH: ${VSS_JSON_PATH:-/data/zod_vss.json}
       MQTT_VIN: ${MQTT_VIN:-MDBAX9C12XYZ1234}
       VEHICLE_VINS: ${VEHICLE_VINS:-MDBAX9C12XYZ1234}
+      VEHICLE_DEFINITIONS_B64: ${VEHICLE_DEFINITIONS_B64:-}
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -41,30 +42,6 @@ services:
       - "8887:8887" # VISS gRPC port
     volumes:
       - ./infra/vissr/data:/app/data
-      - ./infra/vissr/config/uds-registration.json:/app/server/vissv2server/uds-registration.json
-
-  vissr-truck1:
-    profiles:
-      - truck
-    build:
-      context: ./infra/vissr
-      dockerfile: Dockerfile
-    depends_on:
-      mosquitto:
-        condition: service_started
-    entrypoint: ["/app/start-truck1.sh"]
-    environment:
-      - MQTT_BROKER_ADDR=mosquitto
-      - MQTT_VEHICLE_VIN=1FABP34W72K012345
-    ports:
-      - "9888:8080" # Truck1 VISS WebSocket port
-      - "9090:8888" # Truck1 VISS HTTP port
-      - "9600:8600" # Truck1 VISS AT server
-      - "9887:8887" # Truck1 VISS gRPC port
-    volumes:
-      - ./infra/vissr/data:/app/data
-      - ./infra/vissr/truck1-viss.him:/app/truck1-demo/viss.him:ro
-      - ./infra/vissr/config/uds-registration-truck1.json:/app/truck1-demo/uds-registration.json:ro
 
   mqtt-bridge:
     build:

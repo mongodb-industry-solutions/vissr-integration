@@ -1,49 +1,40 @@
 PROFILE ?= zod
 DB ?= local
+NUM_VEHICLES ?= 1
 
-ifeq ($(PROFILE),truck)
-DEFAULT_VSS_JSON_PATH := /data/truck1_trailer1_vss.json
-DEFAULT_MQTT_VIN := 1FABP34W72K012345
-else
-DEFAULT_VSS_JSON_PATH := /data/zod_vss.json
-DEFAULT_MQTT_VIN := MDBAX9C12XYZ1234
-endif
+GENERATED_DIR := .generated
+RUNTIME_ENV_FILE := $(GENERATED_DIR)/runtime.env
+TRUCK_COMPOSE_FILE := $(GENERATED_DIR)/docker-compose.trucks.generated.yml
+GENERATOR := node scripts/generate-runtime-config.mjs
 
-VSS_JSON_PATH ?= $(DEFAULT_VSS_JSON_PATH)
-MQTT_VIN ?= $(DEFAULT_MQTT_VIN)
-VEHICLE_VINS ?= $(MQTT_VIN)
-
-COMPOSE_FILES := -f docker-compose.yml
-ALL_COMPOSE_FILES := -f docker-compose.yml -f docker-compose.local.yml
-COMPOSE_PROFILES :=
-ALL_COMPOSE_PROFILES := --profile truck
+COMPOSE_FILES := -f docker-compose.yml -f $(TRUCK_COMPOSE_FILE)
 
 ifeq ($(DB),local)
 COMPOSE_FILES += -f docker-compose.local.yml
 endif
 
-ifeq ($(PROFILE),truck)
-COMPOSE_PROFILES += --profile truck
-endif
+ALL_COMPOSE_FILES := -f docker-compose.yml -f $(TRUCK_COMPOSE_FILE) -f docker-compose.local.yml
 
-COMPOSE_ENV = VSS_JSON_PATH=$(VSS_JSON_PATH) MQTT_VIN=$(MQTT_VIN) VEHICLE_VINS=$(VEHICLE_VINS)
+.PHONY: prepare build up start restart stop clean
 
-.PHONY: build up start restart stop clean
+prepare:
+	@mkdir -p $(GENERATED_DIR)
+	@$(GENERATOR) --profile $(PROFILE) --num-vehicles $(NUM_VEHICLES) --output-compose-file $(TRUCK_COMPOSE_FILE) --output-env-file $(RUNTIME_ENV_FILE)
 
-build:
-	$(COMPOSE_ENV) docker compose $(COMPOSE_FILES) $(COMPOSE_PROFILES) build
+build: prepare
+	@set -a; . $(RUNTIME_ENV_FILE); set +a; docker compose $(COMPOSE_FILES) build
 
 up: start
 
-start:
-	$(COMPOSE_ENV) docker compose $(COMPOSE_FILES) $(COMPOSE_PROFILES) up --build -d
+start: prepare
+	@set -a; . $(RUNTIME_ENV_FILE); set +a; docker compose $(COMPOSE_FILES) up --build -d --remove-orphans
 
 restart:
-	docker compose $(ALL_COMPOSE_FILES) $(ALL_COMPOSE_PROFILES) down --remove-orphans
-	$(MAKE) start PROFILE=$(PROFILE) DB=$(DB) VSS_JSON_PATH=$(VSS_JSON_PATH) MQTT_VIN=$(MQTT_VIN) VEHICLE_VINS=$(VEHICLE_VINS)
+	@$(MAKE) stop PROFILE=$(PROFILE) DB=$(DB) NUM_VEHICLES=$(NUM_VEHICLES)
+	@$(MAKE) start PROFILE=$(PROFILE) DB=$(DB) NUM_VEHICLES=$(NUM_VEHICLES)
 
-stop:
-	docker compose $(ALL_COMPOSE_FILES) $(ALL_COMPOSE_PROFILES) stop
+stop: prepare
+	@set -a; . $(RUNTIME_ENV_FILE); set +a; docker compose $(ALL_COMPOSE_FILES) stop
 
-clean:
-	docker compose $(ALL_COMPOSE_FILES) $(ALL_COMPOSE_PROFILES) down --rmi all -v
+clean: prepare
+	@set -a; . $(RUNTIME_ENV_FILE); set +a; docker compose $(ALL_COMPOSE_FILES) down --rmi all -v --remove-orphans

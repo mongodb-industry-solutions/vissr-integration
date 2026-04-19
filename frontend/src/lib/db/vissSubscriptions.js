@@ -29,6 +29,9 @@ const signalTypeMap = {
   "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Speed": "double",
   "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Brake.Temperature": "int",
   "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Tire.Pressure": "int",
+  "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Speed": "double",
+  "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake.Temperature": "int",
+  "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Tire.Pressure": "int",
 };
 
 function convertValue(stringValue, bsonType) {

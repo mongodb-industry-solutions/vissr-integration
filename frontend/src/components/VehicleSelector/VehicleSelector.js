@@ -59,9 +59,9 @@ export default function VehicleSelector({
               : "Select a vehicle"
         }
       >
-        {vehicles.map((vin) => (
-          <Option key={vin} value={vin}>
-            {vin}
+        {vehicles.map((vehicle) => (
+          <Option key={vehicle.vin} value={vehicle.vin}>
+            {vehicle.label || vehicle.vin}
           </Option>
         ))}
       </Select>
@@ -79,7 +79,7 @@ export default function VehicleSelector({
 
       {!isLoading && vehicles.length === 0 && !error ? (
         <Body className="mt-1 text-sm text-gray-600">
-          No configured demo vehicles are publishing to `vehicle_status` yet.
+          No vehicles are publishing to `vehicle_status` yet.
         </Body>
       ) : null}
     </div>
