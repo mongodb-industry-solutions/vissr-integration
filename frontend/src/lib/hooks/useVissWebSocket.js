@@ -26,6 +26,8 @@ export default function useVissWebSocket(
 
   const socketRef = useRef(null);
   const connectedVinRef = useRef(null);
+  const connectedHostRef = useRef(null);
+  const reconnectTargetRef = useRef(null);
   const warnedVinChangeRef = useRef(null);
   const warnedMissingVinRef = useRef(false);
 
@@ -68,28 +70,32 @@ export default function useVissWebSocket(
       return;
     }
 
-    if (vin === connectedVinRef.current) {
+    const nextHost = defaultHost || hostIP;
+    const vinChanged = vin !== connectedVinRef.current;
+    const hostChanged = nextHost !== connectedHostRef.current;
+
+    if (!vinChanged && !hostChanged) {
       warnedVinChangeRef.current = null;
       return;
     }
 
-    const warningKey = `${connectedVinRef.current || "none"}->${vin || "none"}`;
+    const warningKey = `${connectedVinRef.current || "none"}@${
+      connectedHostRef.current || "none"
+    }->${vin || "none"}@${nextHost || "none"}`;
     if (warnedVinChangeRef.current === warningKey) {
       return;
     }
 
     warnedVinChangeRef.current = warningKey;
+    reconnectTargetRef.current = nextHost;
     addMessage(
       "system",
-      connectedVinRef.current
-        ? `Vehicle selection changed to ${
-            vin || "none"
-          }. Reconnect WebSocket to sync status for the new vehicle.`
-        : `Vehicle selection is now ${
-            vin || "none"
-          }. Reconnect WebSocket to enable vehicle status sync for this vehicle.`
+      `Vehicle selection changed to ${
+        vin || "none"
+      }. Reconnecting WebSocket so status sync follows the active vehicle.`
     );
-  }, [addMessage, isConnected, vin]);
+    socketRef.current?.close(1000, "Vehicle selection changed");
+  }, [addMessage, defaultHost, hostIP, isConnected, vin]);
 
   /**
    * Connects to the VISS WebSocket server
@@ -106,6 +112,7 @@ export default function useVissWebSocket(
       setConnectionError(null);
       setHostIP(host);
       connectedVinRef.current = vin || null;
+      connectedHostRef.current = host || null;
       warnedVinChangeRef.current = null;
       warnedMissingVinRef.current = false;
 
@@ -122,6 +129,9 @@ export default function useVissWebSocket(
         socket.onopen = () => {
           setIsConnected(true);
           setIsConnecting(false);
+          connectedHostRef.current = cleanHost.includes(":")
+            ? cleanHost
+            : `${cleanHost}:8888`;
           addMessage("system", `Connected to ${wsUrl}`);
 
           if (connectedVinRef.current) {
@@ -133,7 +143,7 @@ export default function useVissWebSocket(
             warnedMissingVinRef.current = true;
             addMessage(
               "system",
-              "Connected without a selected vehicle. WebSocket messages will be logged, but vehicle status sync is disabled until you reconnect with a selected vehicle."
+              "Connected without a selected vehicle. WebSocket messages will be logged, and the connection will refresh automatically when you pick a vehicle."
             );
           }
         };
@@ -190,8 +200,10 @@ export default function useVissWebSocket(
           setIsConnecting(false);
           socketRef.current = null;
           connectedVinRef.current = null;
+          connectedHostRef.current = null;
           warnedVinChangeRef.current = null;
           warnedMissingVinRef.current = false;
+          setActiveSubscriptions(new Map());
 
           if (event.wasClean) {
             addMessage("system", "Connection closed");
@@ -221,15 +233,27 @@ export default function useVissWebSocket(
     [addMessage, vin, persistIncomingMessage]
   );
 
+  useEffect(() => {
+    if (isConnected || isConnecting || !reconnectTargetRef.current) {
+      return;
+    }
+
+    const nextHost = reconnectTargetRef.current;
+    reconnectTargetRef.current = null;
+    connectToHost(nextHost);
+  }, [connectToHost, isConnected, isConnecting]);
+
   /**
    * Disconnects from the WebSocket server
    */
   const disconnect = useCallback(() => {
     if (socketRef.current) {
+      reconnectTargetRef.current = null;
       socketRef.current.close(1000, "User disconnected");
       socketRef.current = null;
     }
     connectedVinRef.current = null;
+    connectedHostRef.current = null;
     warnedVinChangeRef.current = null;
     warnedMissingVinRef.current = false;
     setIsConnected(false);

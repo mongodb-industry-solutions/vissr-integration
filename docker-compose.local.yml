@@ -1,8 +1,9 @@
 services:
   front:
-    depends_on:
-      mongo-init:
-        condition: service_completed_successfully
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/?directConnection=true
+
+  mqtt-bridge:
     environment:
       MONGODB_URI: mongodb://mongodb:27017/?directConnection=true
 
@@ -20,7 +21,7 @@ services:
           "--host",
           "localhost:27017",
           "--eval",
-          "quit(db.hello().isWritablePrimary ? 0 : 1)",
+          "quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)",
         ]
       interval: 2s
       timeout: 5s
@@ -29,31 +30,18 @@ services:
       - mongodb-data:/data/db
 
   mongo-init:
-    image: mongo:8
     depends_on:
       mongodb:
         condition: service_healthy
-    volumes:
-      - ./infra/mongodb/dump:/dump
-    command: >
-      bash -c "
-        mongosh --host mongodb:27017 --eval 'try { rs.status() } catch (e) { rs.initiate({_id: \"rs0\", members: [{_id: 0, host: \"mongodb:27017\"}]}) }';
-        until mongosh --quiet --host mongodb:27017 --eval 'quit(db.hello().isWritablePrimary ? 0 : 1)'; do
-          sleep 1;
-        done;
-        if mongosh --quiet --host mongodb:27017 --eval 'quit(db.getSiblingDB(\"vissr-integration\").getCollectionNames().includes(\"vehicle_status\") ? 0 : 1)'; then
-          echo 'MongoDB already initialized, skipping local seed restore.';
-        else
-          mongorestore --drop --uri mongodb://mongodb:27017/?directConnection=true /dump;
-        fi;
-      "
-
-  mqtt-bridge:
-    depends_on:
-      mongo-init:
-        condition: service_completed_successfully
     environment:
       MONGODB_URI: mongodb://mongodb:27017/?directConnection=true
+      DATABASE_NAME: ${DATABASE_NAME:-vissr-integration}
+      MONGO_INIT_REPLICA_SET_MODE: local
+      MONGO_INIT_REPLICA_SET_HOST: mongodb:27017
+      MONGO_INIT_SOURCE_DATABASE_NAME: vissr-integration
+      MONGO_INIT_SEED_DUMP_DIR: /dump
+    volumes:
+      - ./infra/mongodb/dump:/dump
 
 volumes:
   mongodb-data:

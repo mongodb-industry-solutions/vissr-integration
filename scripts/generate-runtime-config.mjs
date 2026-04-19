@@ -37,6 +37,104 @@ function readDefinitions(repoRoot) {
   return JSON.parse(fs.readFileSync(definitionsPath, "utf8"));
 }
 
+function readJsonFile(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+}
+
+function normalizeExtendedJson(value) {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeExtendedJson(item));
+  }
+
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+
+  if (
+    Object.keys(value).length === 1 &&
+    typeof value.$numberInt === "string"
+  ) {
+    return Number.parseInt(value.$numberInt, 10);
+  }
+
+  if (
+    Object.keys(value).length === 1 &&
+    typeof value.$numberLong === "string"
+  ) {
+    return Number.parseInt(value.$numberLong, 10);
+  }
+
+  if (
+    Object.keys(value).length === 1 &&
+    typeof value.$numberDouble === "string"
+  ) {
+    return Number.parseFloat(value.$numberDouble);
+  }
+
+  return Object.fromEntries(
+    Object.entries(value).map(([key, nestedValue]) => [
+      key,
+      normalizeExtendedJson(nestedValue),
+    ]),
+  );
+}
+
+function stripInternalIndexFields(indexDefinition) {
+  const normalizedDefinition = normalizeExtendedJson(indexDefinition);
+  const { v, ...publicIndexDefinition } = normalizedDefinition;
+  return publicIndexDefinition;
+}
+
+function buildMongoBootstrapConfig(repoRoot) {
+  const metadataRoot = path.join(
+    repoRoot,
+    "infra",
+    "mongodb",
+    "dump",
+    "vissr-integration",
+  );
+  const telemetryMetadata = normalizeExtendedJson(
+    readJsonFile(path.join(metadataRoot, "telemetry.metadata.json")),
+  );
+  const messagesMetadata = normalizeExtendedJson(
+    readJsonFile(path.join(metadataRoot, "messages.metadata.json")),
+  );
+
+  return {
+    collections: [
+      {
+        name: "vehicle_status",
+        type: "collection",
+        indexes: [
+          {
+            key: { "Vehicle.VehicleIdentification.VIN": 1 },
+            name: "vehicle_vin_1",
+          },
+        ],
+      },
+      {
+        name: "messages",
+        type: "collection",
+        indexes: (messagesMetadata.indexes || [])
+          .filter((indexDefinition) => indexDefinition.name !== "_id_")
+          .map((indexDefinition) =>
+            stripInternalIndexFields(indexDefinition),
+          ),
+      },
+      {
+        name: "telemetry",
+        type: "timeseries",
+        options: telemetryMetadata.options || {},
+        indexes: (telemetryMetadata.indexes || [])
+          .filter((indexDefinition) => indexDefinition.name !== "_id_")
+          .map((indexDefinition) =>
+            stripInternalIndexFields(indexDefinition),
+          ),
+      },
+    ],
+  };
+}
+
 function ensureValidCount(count, definitions) {
   if (!Number.isInteger(count) || count < 1) {
     throw new Error(`NUM_VEHICLES must be a positive integer. Received: ${count}`);
@@ -110,6 +208,10 @@ function renderEnvFile(profile, selectedVehicles, defaultVehicle) {
     JSON.stringify(publicMetadata),
     "utf8",
   ).toString("base64");
+  const encodedMongoBootstrapConfig = Buffer.from(
+    JSON.stringify(buildMongoBootstrapConfig(process.cwd())),
+    "utf8",
+  ).toString("base64");
 
   return [
     `PROFILE=${profile}`,
@@ -118,6 +220,7 @@ function renderEnvFile(profile, selectedVehicles, defaultVehicle) {
     `VEHICLE_VINS=${activeVehicles.map((vehicle) => vehicle.vin).join(",")}`,
     `VSS_JSON_PATH=${activeVehicles[0].frontend.vssJsonPath}`,
     `VEHICLE_DEFINITIONS_B64=${encodedMetadata}`,
+    `MONGO_BOOTSTRAP_CONFIG_B64=${encodedMongoBootstrapConfig}`,
     "",
   ].join("\n");
 }

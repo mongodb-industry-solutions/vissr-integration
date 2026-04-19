@@ -1,4 +1,7 @@
-import getMongoClientPromise from "./client.js";
+import getMongoClientPromise, {
+  getMongoDatabaseName,
+  getMongoTroubleshootingHint,
+} from "./client.js";
 
 /**
  * Creates a change stream for a MongoDB collection.
@@ -16,10 +19,12 @@ export async function createChangeStream(
   onChangeCallback,
   options = {}
 ) {
-  const database = process.env.DATABASE_NAME;
-  if (!database) throw new Error("DATABASE_NAME env var not set");
+  const database = getMongoDatabaseName(`change stream on ${collectionName}`);
 
   const { pipeline = [], onError } = options;
+  const changeStreamHint = getMongoTroubleshootingHint({
+    requiresChangeStreams: true,
+  });
 
   try {
     const client = await getMongoClientPromise();
@@ -43,8 +48,11 @@ export async function createChangeStream(
 
     // Handle errors
     changeStream.on("error", (error) => {
-      console.error("Change stream error:", error);
-      if (onError) onError(error);
+      const wrappedError = new Error(
+        `Change stream error for ${collectionName} in ${database}: ${error.message}. ${changeStreamHint}`,
+      );
+      console.error("Change stream error:", wrappedError);
+      if (onError) onError(wrappedError);
     });
 
     // Return cleanup function
@@ -52,8 +60,11 @@ export async function createChangeStream(
       await changeStream.close();
     };
   } catch (error) {
-    console.error("Failed to create change stream:", error);
-    throw error;
+    const wrappedError = new Error(
+      `Failed to create change stream for ${collectionName} in ${database}: ${error.message}. ${changeStreamHint}`,
+    );
+    console.error("Failed to create change stream:", wrappedError);
+    throw wrappedError;
   }
 }
 

@@ -4,7 +4,7 @@ const { MongoClient } = require("mongodb");
 // Environment variables
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || "mqtt://mosquitto:1883";
 const MONGODB_URI = process.env.MONGODB_URI;
-const DATABASE_NAME = process.env.DATABASE_NAME || "vissr_db";
+const DATABASE_NAME = process.env.DATABASE_NAME || "vissr-integration";
 const VEHICLE_VINS = (process.env.VEHICLE_VINS || "")
   .split(",")
   .map((vin) => vin.trim())
@@ -131,13 +131,23 @@ function resolveVinForResponse(cleanTopic, payload) {
   return responseTopicToVin.get(cleanTopic) || null;
 }
 
-async function main() {
+function createMongoClient() {
   if (!MONGODB_URI) {
-    throw new Error("MONGODB_URI environment variable is required but not set");
+    throw new Error(
+      "MONGODB_URI environment variable is required but not set for the MQTT bridge",
+    );
   }
 
+  return new MongoClient(MONGODB_URI, {
+    appName: "vissr-integration-mqtt-bridge",
+    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 10000,
+  });
+}
+
+async function main() {
   console.log("Connecting to MongoDB...");
-  const client = new MongoClient(MONGODB_URI);
+  const client = createMongoClient();
   await client.connect();
   const db = client.db(DATABASE_NAME);
   const vehicleStatusCollection = db.collection("vehicle_status");
@@ -273,4 +283,10 @@ async function main() {
   });
 }
 
-main().catch(console.error);
+main().catch((error) => {
+  console.error(
+    "MQTT bridge startup failed. Verify MONGODB_URI, DATABASE_NAME, and network access to the selected MongoDB deployment.",
+    error,
+  );
+  process.exitCode = 1;
+});

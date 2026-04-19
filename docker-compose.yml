@@ -3,6 +3,9 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
     env_file:
@@ -47,6 +50,11 @@ services:
     build:
       context: ./infra/mqtt-bridge
       dockerfile: Dockerfile
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+      mosquitto:
+        condition: service_started
     env_file:
       - .env
     environment:
@@ -54,8 +62,18 @@ services:
       MONGODB_URI: ${MONGODB_URI:-}
       DATABASE_NAME: ${DATABASE_NAME:-vissr-integration}
       VEHICLE_VINS: ${VEHICLE_VINS:-MDBAX9C12XYZ1234}
-    depends_on:
-      - mosquitto
+
+  mongo-init:
+    image: mongo:8
+    env_file:
+      - .env
+    volumes:
+      - ./infra/mongodb/init:/scripts:ro
+    command: ["bash", "/scripts/run-init.sh"]
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-}
+      DATABASE_NAME: ${DATABASE_NAME:-vissr-integration}
+      MONGO_BOOTSTRAP_CONFIG_B64: ${MONGO_BOOTSTRAP_CONFIG_B64:-}
 
 volumes:
   mosquitto-data:

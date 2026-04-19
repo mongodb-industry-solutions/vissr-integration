@@ -3,12 +3,53 @@ import { MongoClient } from "mongodb";
 let client;
 let clientPromise;
 
-function createMongoClient() {
-  if (!process.env.MONGODB_URI) {
-    throw new Error("MONGODB_URI environment variable is required but not set");
+const DEFAULT_SERVER_SELECTION_TIMEOUT_MS = Number.parseInt(
+  process.env.MONGODB_SERVER_SELECTION_TIMEOUT_MS || "10000",
+  10,
+);
+const DEFAULT_CONNECT_TIMEOUT_MS = Number.parseInt(
+  process.env.MONGODB_CONNECT_TIMEOUT_MS || "10000",
+  10,
+);
+
+function getRequiredEnv(name, context) {
+  const value = process.env[name];
+
+  if (!value) {
+    throw new Error(`${name} environment variable is required for ${context}`);
   }
-  const uri = process.env.MONGODB_URI;
-  return new MongoClient(uri);
+
+  return value;
+}
+
+export function getMongoDatabaseName(context = "MongoDB operations") {
+  return getRequiredEnv("DATABASE_NAME", context);
+}
+
+export function getMongoTroubleshootingHint({
+  requiresChangeStreams = false,
+} = {}) {
+  const hints = [
+    "Verify MONGODB_URI and DATABASE_NAME are set for the active deployment.",
+  ];
+
+  if (requiresChangeStreams) {
+    hints.push(
+      "Ensure the database is a replica set or Atlas cluster and the database user can open change streams.",
+    );
+  }
+
+  return hints.join(" ");
+}
+
+function createMongoClient() {
+  const uri = getRequiredEnv("MONGODB_URI", "MongoDB client startup");
+
+  return new MongoClient(uri, {
+    appName: "vissr-integration-frontend",
+    serverSelectionTimeoutMS: DEFAULT_SERVER_SELECTION_TIMEOUT_MS,
+    connectTimeoutMS: DEFAULT_CONNECT_TIMEOUT_MS,
+  });
 }
 
 function getMongoClientPromise() {
