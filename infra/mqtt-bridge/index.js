@@ -1,5 +1,6 @@
 const mqtt = require("mqtt");
 const { MongoClient } = require("mongodb");
+const { coerceVssValue, getSignalSchemaForVin } = require("./vssSignalSchema");
 
 // Environment variables
 const MQTT_BROKER_URL = process.env.MQTT_BROKER_URL || "mqtt://mosquitto:1883";
@@ -14,51 +15,7 @@ const responseTopicToVin = new Map();
 const responseTopicSubscriptionToVin = new Map();
 const warnedResponseTopics = new Set();
 const warnedUnexpectedVins = new Set();
-
-// Type mapping dictionary
-const signalTypeMap = {
-  "Vehicle.Acceleration.Lateral": "double",
-  "Vehicle.Acceleration.Longitudinal": "double",
-  "Vehicle.AngularVelocity.Pitch": "double",
-  "Vehicle.AngularVelocity.Roll": "double",
-  "Vehicle.Body.Lights.DirectionIndicator.Left.IsSignaling": "bool",
-  "Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling": "bool",
-  "Vehicle.Chassis.Accelerator.PedalPosition": "int",
-  "Vehicle.Chassis.Brake.PedalPosition": "int",
-  "Vehicle.Chassis.SteeringWheel.Angle": "int",
-  "Vehicle.Chassis.Axle.Axle1.Wheel.Pos10.Brake.Temperature": "int",
-  "Vehicle.Chassis.Axle.Axle1.Wheel.Pos10.Tire.Pressure": "int",
-  "Vehicle.CurrentLocation.Altitude": "double",
-  "Vehicle.CurrentLocation.Heading": "double",
-  "Vehicle.CurrentLocation.Latitude": "double",
-  "Vehicle.CurrentLocation.Longitude": "double",
-  "Vehicle.MotionManagement.Steering.SteeringWheel.Torque": "int",
-  "Vehicle.Trailer.IsConnected": "bool",
-  "Vehicle.VehicleIdentification.VIN": "string",
-  "Vehicle.Speed": "double",
-  "Trailer.TrailerIdentification.VIN": "string",
-  "Trailer.TrailerType": "string",
-  "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Speed": "double",
-  "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Brake.Temperature": "int",
-  "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Tire.Pressure": "int",
-  "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Speed": "double",
-  "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake.Temperature": "int",
-  "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Tire.Pressure": "int",
-};
-
-// Function to convert string value to proper type
-function convertValue(stringValue, bsonType) {
-  switch (bsonType) {
-    case "double":
-      return parseFloat(stringValue);
-    case "int":
-      return parseInt(stringValue);
-    case "bool":
-      return stringValue === "true" || stringValue === true;
-    default:
-      return stringValue;
-  }
-}
+const warnedUnsupportedSignalPaths = new Set();
 
 function normalizeTopic(topic) {
   return topic.replace(/"/g, "").trim();
@@ -114,6 +71,18 @@ function warnIfVinNotConfigured(vin) {
       `Received telemetry for VIN ${vin} that is not listed in VEHICLE_VINS; continuing with dynamic upsert.`,
     );
   }
+}
+
+function warnUnsupportedSignalPath(vin, assetPath, signalPath) {
+  const warningKey = `${vin}::${assetPath}::${signalPath}`;
+  if (warnedUnsupportedSignalPaths.has(warningKey)) {
+    return;
+  }
+
+  warnedUnsupportedSignalPaths.add(warningKey);
+  console.warn(
+    `Skipping unsupported signal path ${signalPath} for VIN ${vin} using VSS asset ${assetPath}.`,
+  );
 }
 
 function resolveVinForResponse(cleanTopic, payload) {
@@ -223,6 +192,7 @@ async function main() {
 
       // Check if it's a subscription update or get response with data
       if (payload.action === "subscription" && payload.data) {
+        const { assetPath, signalDatatypeMap } = await getSignalSchemaForVin(vin);
         let ts = payload.ts;
         if (!ts && payload.data && !Array.isArray(payload.data)) {
           ts = payload.data.dp?.ts || payload.data.ts;
@@ -252,14 +222,19 @@ async function main() {
 
           if (!path || value === undefined) continue;
 
-          const bsonType = signalTypeMap[path];
-          if (bsonType) {
-            updateFields[path] = convertValue(value, bsonType);
-            hasUpdates = true;
+          const datatype = signalDatatypeMap[path];
+          if (!datatype) {
+            warnUnsupportedSignalPath(vin, assetPath, path);
+            continue;
           }
+
+          updateFields[path] = coerceVssValue(value, datatype);
+          hasUpdates = true;
         }
 
         if (hasUpdates) {
+          updateFields["Vehicle.VehicleIdentification.VIN"] = vin;
+
           await vehicleStatusCollection.updateOne(
             { "Vehicle.VehicleIdentification.VIN": vin },
             { $set: updateFields },

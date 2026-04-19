@@ -1,51 +1,12 @@
 "use server";
 
 import { mongoAction } from "@/integrations/mongodb/actions";
+import {
+  coerceVssValue,
+  getSignalSchemaForVin,
+} from "@/lib/server/vssSignalSchema";
 
-// Keep this mapping aligned with the MQTT bridge until both paths
-// can safely share a single cross-runtime implementation.
-const signalTypeMap = {
-  "Vehicle.Acceleration.Lateral": "double",
-  "Vehicle.Acceleration.Longitudinal": "double",
-  "Vehicle.AngularVelocity.Pitch": "double",
-  "Vehicle.AngularVelocity.Roll": "double",
-  "Vehicle.Body.Lights.DirectionIndicator.Left.IsSignaling": "bool",
-  "Vehicle.Body.Lights.DirectionIndicator.Right.IsSignaling": "bool",
-  "Vehicle.Chassis.Accelerator.PedalPosition": "int",
-  "Vehicle.Chassis.Brake.PedalPosition": "int",
-  "Vehicle.Chassis.SteeringWheel.Angle": "int",
-  "Vehicle.Chassis.Axle.Axle1.Wheel.Pos10.Brake.Temperature": "int",
-  "Vehicle.Chassis.Axle.Axle1.Wheel.Pos10.Tire.Pressure": "int",
-  "Vehicle.CurrentLocation.Altitude": "double",
-  "Vehicle.CurrentLocation.Heading": "double",
-  "Vehicle.CurrentLocation.Latitude": "double",
-  "Vehicle.CurrentLocation.Longitude": "double",
-  "Vehicle.MotionManagement.Steering.SteeringWheel.Torque": "int",
-  "Vehicle.Trailer.IsConnected": "bool",
-  "Vehicle.VehicleIdentification.VIN": "string",
-  "Vehicle.Speed": "double",
-  "Trailer.TrailerIdentification.VIN": "string",
-  "Trailer.TrailerType": "string",
-  "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Speed": "double",
-  "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Brake.Temperature": "int",
-  "Trailer.Chassis.Axle.Axle1.Wheel.Pos13.Tire.Pressure": "int",
-  "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Speed": "double",
-  "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake.Temperature": "int",
-  "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Tire.Pressure": "int",
-};
-
-function convertValue(stringValue, bsonType) {
-  switch (bsonType) {
-    case "double":
-      return parseFloat(stringValue);
-    case "int":
-      return parseInt(stringValue, 10);
-    case "bool":
-      return stringValue === "true" || stringValue === true;
-    default:
-      return stringValue;
-  }
-}
+const warnedUnsupportedSignalPaths = new Set();
 
 function resolveTimestamp(message, dataPoints) {
   if (message.ts) {
@@ -67,8 +28,11 @@ export async function persistVehicleSubscription({ vin, message }) {
     };
   }
 
-  const dataPoints = Array.isArray(message.data) ? message.data : [message.data];
+  const dataPoints = Array.isArray(message.data)
+    ? message.data
+    : [message.data];
   const updateFields = {};
+  const { assetPath, signalDatatypeMap } = await getSignalSchemaForVin(vin);
 
   for (const item of dataPoints) {
     const path = item?.path;
@@ -78,12 +42,19 @@ export async function persistVehicleSubscription({ vin, message }) {
       continue;
     }
 
-    const bsonType = signalTypeMap[path];
-    if (!bsonType) {
+    const datatype = signalDatatypeMap[path];
+    if (!datatype) {
+      const warningKey = `${vin}::${assetPath}::${path}`;
+      if (!warnedUnsupportedSignalPaths.has(warningKey)) {
+        warnedUnsupportedSignalPaths.add(warningKey);
+        console.warn(
+          `Skipping unsupported signal path ${path} for VIN ${vin} using VSS asset ${assetPath}.`,
+        );
+      }
       continue;
     }
 
-    updateFields[path] = convertValue(value, bsonType);
+    updateFields[path] = coerceVssValue(value, datatype);
   }
 
   if (Object.keys(updateFields).length === 0) {

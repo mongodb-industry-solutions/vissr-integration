@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { listVehicles } from "@/lib/db/vehicleStatus";
+import {
+  DEFAULT_VSS_JSON_PATH,
+  parseConfiguredVehicleDefinitions,
+} from "@/lib/server/vehicleRuntimeConfig";
 
 export const dynamic = "force-dynamic";
-
-const DEFAULT_VSS_JSON_PATH = "/data/zod_vss.json";
 
 function parseConfiguredVehicleVins() {
   const configuredVins = process.env.VEHICLE_VINS || process.env.MQTT_VIN || "";
@@ -12,27 +14,6 @@ function parseConfiguredVehicleVins() {
     .split(",")
     .map((vin) => vin.trim())
     .filter(Boolean);
-}
-
-function parseConfiguredVehicleDefinitions() {
-  const encodedDefinitions = process.env.VEHICLE_DEFINITIONS_B64 || "";
-
-  if (!encodedDefinitions) {
-    return [];
-  }
-
-  try {
-    const decodedDefinitions = Buffer.from(
-      encodedDefinitions,
-      "base64",
-    ).toString("utf8");
-    const parsedDefinitions = JSON.parse(decodedDefinitions);
-
-    return Array.isArray(parsedDefinitions) ? parsedDefinitions : [];
-  } catch (error) {
-    console.error("Failed to parse VEHICLE_DEFINITIONS_B64:", error);
-    return [];
-  }
 }
 
 function normalizeVehicleRecord(vehicle) {
@@ -74,7 +55,9 @@ function buildVehicleRecords(vins, configuredVehicles) {
   );
 
   return vins
-    .map((vin) => configuredVehiclesByVin.get(vin) || normalizeVehicleRecord(vin))
+    .map(
+      (vin) => configuredVehiclesByVin.get(vin) || normalizeVehicleRecord(vin),
+    )
     .filter(Boolean);
 }
 

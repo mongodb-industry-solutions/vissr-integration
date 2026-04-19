@@ -14,6 +14,7 @@ services:
       MONGODB_URI: ${MONGODB_URI:-}
       DATABASE_NAME: ${DATABASE_NAME:-vissr-integration}
       VSS_JSON_PATH: ${VSS_JSON_PATH:-/data/zod_vss.json}
+      VSS_JSON_ROOT_DIR: ${VSS_JSON_ROOT_DIR:-/app/public}
       MQTT_VIN: ${MQTT_VIN:-MDBAX9C12XYZ1234}
       VEHICLE_VINS: ${VEHICLE_VINS:-MDBAX9C12XYZ1234}
       VEHICLE_DEFINITIONS_B64: ${VEHICLE_DEFINITIONS_B64:-}
@@ -62,6 +63,11 @@ services:
       MONGODB_URI: ${MONGODB_URI:-}
       DATABASE_NAME: ${DATABASE_NAME:-vissr-integration}
       VEHICLE_VINS: ${VEHICLE_VINS:-MDBAX9C12XYZ1234}
+      VSS_JSON_PATH: ${VSS_JSON_PATH:-/data/zod_vss.json}
+      VSS_JSON_ROOT_DIR: ${VSS_JSON_ROOT_DIR:-/app/public}
+      VEHICLE_DEFINITIONS_B64: ${VEHICLE_DEFINITIONS_B64:-}
+    volumes:
+      - ./frontend/public:/app/public:ro
 
   mongo-init:
     image: mongo:8

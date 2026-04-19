@@ -41,6 +41,57 @@ function readJsonFile(filePath) {
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
+function resolveFrontendPublicAssetFilePath(repoRoot, assetPath) {
+  if (typeof assetPath !== "string" || assetPath.trim() === "") {
+    throw new Error("frontend asset path must be a non-empty string");
+  }
+
+  const publicRoot = path.join(repoRoot, "frontend", "public");
+  const normalizedAssetPath = assetPath.replace(/^\/+/, "");
+  const filePath = path.join(publicRoot, normalizedAssetPath);
+  const relativePath = path.relative(publicRoot, filePath);
+
+  if (relativePath.startsWith("..") || path.isAbsolute(relativePath)) {
+    throw new Error(`Invalid frontend asset path: ${assetPath}`);
+  }
+
+  return filePath;
+}
+
+function validateVehicleFrontendVssJson(repoRoot, vehicle, label) {
+  const assetPath = vehicle?.frontend?.vssJsonPath;
+  if (!assetPath) {
+    throw new Error(
+      `${label} is missing frontend.vssJsonPath in infra/vissr/vehicle-definitions/index.json`,
+    );
+  }
+
+  const filePath = resolveFrontendPublicAssetFilePath(repoRoot, assetPath);
+  if (!fs.existsSync(filePath)) {
+    throw new Error(
+      `${label} references missing VSS JSON asset ${assetPath} (${filePath})`,
+    );
+  }
+}
+
+function validateDefinitions(repoRoot, definitions) {
+  if (definitions.defaultVehicle) {
+    validateVehicleFrontendVssJson(
+      repoRoot,
+      definitions.defaultVehicle,
+      `default vehicle ${definitions.defaultVehicle.id || "default"}`,
+    );
+  }
+
+  for (const vehicle of definitions.truckVehicles || []) {
+    validateVehicleFrontendVssJson(
+      repoRoot,
+      vehicle,
+      `vehicle ${vehicle.id || vehicle.vin || "unknown"}`,
+    );
+  }
+}
+
 function normalizeExtendedJson(value) {
   if (Array.isArray(value)) {
     return value.map((item) => normalizeExtendedJson(item));
@@ -195,7 +246,11 @@ function renderComposeFile(profile, selectedVehicles) {
   }
 
   const services = selectedVehicles.map((vehicle) => renderTruckService(vehicle)).join("\n");
-  return `services:\n${services}`;
+  return `services:
+  vissr:
+    profiles: ["zod"]
+
+${services}`;
 }
 
 function renderEnvFile(profile, selectedVehicles, defaultVehicle) {
@@ -219,6 +274,7 @@ function renderEnvFile(profile, selectedVehicles, defaultVehicle) {
     `MQTT_VIN=${activeVehicles[0].vin}`,
     `VEHICLE_VINS=${activeVehicles.map((vehicle) => vehicle.vin).join(",")}`,
     `VSS_JSON_PATH=${activeVehicles[0].frontend.vssJsonPath}`,
+    `VSS_JSON_ROOT_DIR=/app/public`,
     `VEHICLE_DEFINITIONS_B64=${encodedMetadata}`,
     `MONGO_BOOTSTRAP_CONFIG_B64=${encodedMongoBootstrapConfig}`,
     "",
@@ -239,6 +295,7 @@ function main() {
   }
 
   const definitions = readDefinitions(repoRoot);
+  validateDefinitions(repoRoot, definitions);
   const defaultVehicle = definitions.defaultVehicle;
   const truckVehicles = definitions.truckVehicles || [];
   const requestedVehicleCount = Number.parseInt(args["num-vehicles"] || "1", 10);
