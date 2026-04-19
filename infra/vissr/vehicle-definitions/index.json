@@ -1,0 +1,74 @@
+{
+  "defaultVehicle": {
+    "id": "zod",
+    "profile": "zod",
+    "label": "ZOD Demo",
+    "vin": "MDBAX9C12XYZ1234",
+    "assets": {
+      "udsRegistration": "default/uds-registration.json"
+    },
+    "frontend": {
+      "vssJsonPath": "/data/zod_vss.json"
+    },
+    "ports": {
+      "websocket": 8888,
+      "http": 8090,
+      "at": 8600,
+      "grpc": 8887
+    }
+  },
+  "truckVehicles": [
+    {
+      "id": "truck1",
+      "index": 1,
+      "profile": "truck",
+      "label": "Truck 1",
+      "vin": "1FABP34W72K012345",
+      "trailerVin": "3FABP34W72K234567",
+      "assets": {
+        "vissHim": "truck1/viss.him",
+        "udsRegistration": "truck1/uds-registration.json",
+        "feed": "truck1/feed.json",
+        "vehicleTreeYaml": "truck1/tree/vehicle.yaml",
+        "vehicleTreeBinary": "truck1/tree/vehicle.binary",
+        "trailerTreeYaml": "truck1/tree/trailer.yaml",
+        "trailerTreeBinary": "truck1/tree/trailer.binary"
+      },
+      "frontend": {
+        "vssJsonPath": "/data/truck1_trailer1_vss.json"
+      },
+      "ports": {
+        "websocket": 9888,
+        "http": 9090,
+        "at": 9600,
+        "grpc": 9887
+      }
+    },
+    {
+      "id": "truck2",
+      "index": 2,
+      "profile": "truck",
+      "label": "Truck 2",
+      "vin": "2FABP34W72K123456",
+      "trailerVin": "4FABP34W72K345678",
+      "assets": {
+        "vissHim": "truck2/viss.him",
+        "udsRegistration": "truck2/uds-registration.json",
+        "feed": "truck2/feed.json",
+        "vehicleTreeYaml": "truck2/tree/vehicle.yaml",
+        "vehicleTreeBinary": "truck2/tree/vehicle.binary",
+        "trailerTreeYaml": "truck2/tree/trailer.yaml",
+        "trailerTreeBinary": "truck2/tree/trailer.binary"
+      },
+      "frontend": {
+        "vssJsonPath": "/data/truck2_trailer2_vss.json"
+      },
+      "ports": {
+        "websocket": 9988,
+        "http": 9190,
+        "at": 9700,
+        "grpc": 9987
+      }
+    }
+  ]
+}

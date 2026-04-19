@@ -46,6 +46,16 @@ export default function ConnectionManager({
     onConnect?.(hostIP);
   };
 
+  const normalizedHost = hostIP
+    .replace(/^(ws|wss):\/\//i, "")
+    .replace(/:\d+$/, "");
+  const displayHost =
+    protocol === "websocket"
+      ? hostIP.includes(":")
+        ? hostIP
+        : `${hostIP}:8888`
+      : `${normalizedHost}:9001`;
+
   return (
     <div className="flex flex-col items-end">
       <div className="flex items-center gap-2">
@@ -68,7 +78,7 @@ export default function ConnectionManager({
       </div>
 
       <Body className="text-sm text-gray-600 mt-1">
-        Host: {hostIP.includes(":") ? hostIP : `${hostIP}:${protocol === "websocket" ? "8888" : "9001"}`} ({protocol === "websocket" ? "WS" : "MQTT"})
+        Host: {displayHost} ({protocol === "websocket" ? "WS" : "MQTT"})
       </Body>
 
       <Modal

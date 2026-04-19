@@ -6,9 +6,10 @@ import { useState, useEffect, useRef, useCallback } from "react";
  * Custom hook for managing Server-Sent Events connection to vehicle_status change stream.
  * Provides real-time updates when the vehicle_status collection changes in MongoDB.
  *
+ * @param {string} vin - VIN used to scope the status stream
  * @returns {Object} Vehicle status state and connection information
  */
-export default function useVehicleStatusStream() {
+export default function useVehicleStatusStream(vin) {
   const [vehicleStatus, setVehicleStatus] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -29,14 +30,36 @@ export default function useVehicleStatusStream() {
     // Clean up existing connection
     if (eventSourceRef.current) {
       eventSourceRef.current.close();
+      eventSourceRef.current = null;
+    }
+
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+
+    reconnectAttemptsRef.current = 0;
+    setVehicleStatus(null);
+    setLastUpdate(null);
+    setIsConnected(false);
+    setError(null);
+
+    if (!vin) {
+      setIsLoading(false);
+      return;
     }
 
     try {
-      const eventSource = new EventSource("/api/vehicle-status/stream");
+      setIsLoading(true);
+      const params = new URLSearchParams({ vin });
+      const eventSource = new EventSource(
+        `/api/vehicle-status/stream?${params.toString()}`
+      );
       eventSourceRef.current = eventSource;
 
       eventSource.onopen = () => {
         setIsConnected(true);
+        setIsLoading(false);
         setError(null);
         reconnectAttemptsRef.current = 0;
         console.log("Vehicle status stream connected");
@@ -58,6 +81,7 @@ export default function useVehicleStatusStream() {
               // Update from change stream
               if (message.data.document) {
                 setVehicleStatus(message.data.document);
+                setIsLoading(false);
                 setLastUpdate(message.timestamp);
               }
               break;
@@ -71,6 +95,7 @@ export default function useVehicleStatusStream() {
               // Error from server
               console.error("Server error:", message.message);
               setError(message.message);
+              setIsLoading(false);
               break;
 
             default:
@@ -108,7 +133,7 @@ export default function useVehicleStatusStream() {
       setError(err.message);
       setIsLoading(false);
     }
-  }, []);
+  }, [vin]);
 
   /**
    * Disconnects from the SSE stream
@@ -116,6 +141,7 @@ export default function useVehicleStatusStream() {
   const disconnect = useCallback(() => {
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
     }
     if (eventSourceRef.current) {
       eventSourceRef.current.close();

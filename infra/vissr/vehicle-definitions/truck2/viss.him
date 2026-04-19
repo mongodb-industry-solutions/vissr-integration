@@ -1,0 +1,31 @@
+HIM:
+type: branch
+description: Defines the truck2 and trailer2 trees managed as one virtual domain.
+
+HIM.Vehicle:
+type: direct
+domain: Vehicle.Truck.Data
+version: 1.0
+local: forest/truck2.binary
+description: Truck 2 tree.
+
+HIM.Trailer:
+type: direct
+domain: Vehicle.Trailer.Data
+version: 1.0
+local: forest/trailer2.binary
+description: Trailer 2 tree.
+
+HIM.Types:
+type: direct
+domain: Vehicle.Car.TypeDefinition
+version: 0.1
+local: forest/typedef.binary
+description: A type definition tree.
+
+HIM.Server:
+type: direct
+domain: Server.Capabilities.Data
+version: 0.1
+local: forest/server.binary
+description: The server capabilities tree.

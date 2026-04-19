@@ -1,0 +1,232 @@
+{
+  "Vehicle": {
+    "type": "branch",
+    "description": "Truck 2 test signals.",
+    "children": {
+      "Speed": {
+        "type": "sensor",
+        "datatype": "float",
+        "description": "Vehicle speed.",
+        "unit": "km/h"
+      },
+      "Chassis": {
+        "type": "branch",
+        "description": "Truck chassis signals.",
+        "children": {
+          "Accelerator": {
+            "type": "branch",
+            "description": "Accelerator signals.",
+            "children": {
+              "PedalPosition": {
+                "type": "sensor",
+                "datatype": "uint8",
+                "description": "Accelerator pedal position.",
+                "unit": "percent"
+              }
+            }
+          },
+          "Brake": {
+            "type": "branch",
+            "description": "Brake signals.",
+            "children": {
+              "PedalPosition": {
+                "type": "sensor",
+                "datatype": "uint8",
+                "description": "Brake pedal position.",
+                "unit": "percent"
+              }
+            }
+          },
+          "SteeringWheel": {
+            "type": "branch",
+            "description": "Steering wheel signals.",
+            "children": {
+              "Angle": {
+                "type": "sensor",
+                "datatype": "int16",
+                "description": "Steering wheel angle.",
+                "unit": "degrees"
+              }
+            }
+          },
+          "Axle": {
+            "type": "branch",
+            "description": "Axle and wheel test signals.",
+            "children": {
+              "Axle1": {
+                "type": "branch",
+                "description": "Front axle test signals.",
+                "children": {
+                  "Wheel": {
+                    "type": "branch",
+                    "description": "Wheel test signals.",
+                    "children": {
+                      "Pos10": {
+                        "type": "branch",
+                        "description": "Sample truck wheel.",
+                        "children": {
+                          "Brake": {
+                            "type": "branch",
+                            "description": "Brake test signals.",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              }
+                            }
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "description": "Tire test signals.",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "CurrentLocation": {
+        "type": "branch",
+        "description": "Vehicle position.",
+        "children": {
+          "Latitude": {
+            "type": "sensor",
+            "datatype": "double",
+            "description": "Latitude.",
+            "unit": "degrees"
+          },
+          "Longitude": {
+            "type": "sensor",
+            "datatype": "double",
+            "description": "Longitude.",
+            "unit": "degrees"
+          },
+          "Heading": {
+            "type": "sensor",
+            "datatype": "double",
+            "description": "Heading.",
+            "unit": "degrees"
+          }
+        }
+      },
+      "VehicleIdentification": {
+        "type": "branch",
+        "description": "Vehicle identification.",
+        "children": {
+          "VIN": {
+            "type": "attribute",
+            "datatype": "string",
+            "description": "Vehicle VIN."
+          }
+        }
+      },
+      "Trailer": {
+        "type": "branch",
+        "description": "Trailer linkage state.",
+        "children": {
+          "IsConnected": {
+            "type": "sensor",
+            "datatype": "boolean",
+            "description": "Whether a trailer is connected."
+          }
+        }
+      }
+    }
+  },
+  "Trailer": {
+    "type": "branch",
+    "description": "Trailer 2 test signals.",
+    "children": {
+      "TrailerIdentification": {
+        "type": "branch",
+        "description": "Trailer identification.",
+        "children": {
+          "VIN": {
+            "type": "attribute",
+            "datatype": "string",
+            "description": "Trailer VIN."
+          }
+        }
+      },
+      "TrailerType": {
+        "type": "attribute",
+        "datatype": "string",
+        "description": "Trailer type."
+      },
+      "Chassis": {
+        "type": "branch",
+        "description": "Trailer chassis signals.",
+        "children": {
+          "Axle": {
+            "type": "branch",
+            "description": "Axle signals.",
+            "children": {
+              "Axle10": {
+                "type": "branch",
+                "description": "Lead trailer axle.",
+                "children": {
+                  "Wheel": {
+                    "type": "branch",
+                    "description": "Wheel signals.",
+                    "children": {
+                      "Pos13": {
+                        "type": "branch",
+                        "description": "Sample trailer wheel.",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "description": "Brake test signals.",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              }
+                            }
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "description": "Tire test signals.",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

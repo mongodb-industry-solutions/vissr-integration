@@ -43,15 +43,15 @@ COPY --from=builder /build/feeder /app/feeder
 
 # Add startup script
 COPY start.sh /app/start.sh
-COPY start-truck1.sh /app/start-truck1.sh
-RUN chmod +x /app/start.sh /app/start-truck1.sh
+COPY start-vehicle.sh /app/start-vehicle.sh
+RUN chmod +x /app/start.sh /app/start-vehicle.sh
 
-# Add truck1 demo runtime assets
-RUN mkdir -p /app/truck1-demo
-COPY truck1-viss.him /app/truck1-demo/viss.him
-COPY config/uds-registration-truck1.json /app/truck1-demo/uds-registration.json
-COPY amm-demo-trees/truck1.binary /app/server/vissv2server/forest/truck1.binary
-COPY amm-demo-trees/trailer1.binary /app/server/vissv2server/forest/trailer1.binary
+# Add vehicle definition assets
+COPY vehicle-definitions /app/vehicle-definitions
+RUN cp /app/vehicle-definitions/truck1/tree/vehicle.binary /app/server/vissv2server/forest/truck1.binary && \
+    cp /app/vehicle-definitions/truck1/tree/trailer.binary /app/server/vissv2server/forest/trailer1.binary && \
+    cp /app/vehicle-definitions/truck2/tree/vehicle.binary /app/server/vissv2server/forest/truck2.binary && \
+    cp /app/vehicle-definitions/truck2/tree/trailer.binary /app/server/vissv2server/forest/trailer2.binary
 
 # Create the required Unix Domain Socket directory used for communication
 RUN mkdir -p /var/tmp/vissv2

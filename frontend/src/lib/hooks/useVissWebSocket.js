@@ -1,16 +1,23 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { insertVissMessage } from "@/lib/db/messages";
+import { useState, useRef, useCallback, useEffect } from "react";
 
 /**
  * Custom hook for managing VISS WebSocket connections and message handling.
  * Provides connection management, message sending, and response tracking functionality.
  *
+ * @param {string|null} vin - Vehicle VIN bound to the active WebSocket session
+ * @param {string} defaultHost - Preferred WebSocket host for the selected vehicle
+ * @param {(vin: string | null, message: Object) => Promise<Object>} persistWebSocketMessageAction
+ *   Server action used to log raw VISS messages and materialize subscription data.
  * @returns {Object} WebSocket state and control functions
  */
-export default function useVissWebSocket() {
-  const [hostIP, setHostIP] = useState("127.0.0.1");
+export default function useVissWebSocket(
+  vin,
+  defaultHost,
+  persistWebSocketMessageAction,
+) {
+  const [hostIP, setHostIP] = useState(defaultHost || "127.0.0.1");
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [messages, setMessages] = useState([]);
@@ -18,6 +25,11 @@ export default function useVissWebSocket() {
   const [activeSubscriptions, setActiveSubscriptions] = useState(new Map());
 
   const socketRef = useRef(null);
+  const connectedVinRef = useRef(null);
+  const connectedHostRef = useRef(null);
+  const reconnectTargetRef = useRef(null);
+  const warnedVinChangeRef = useRef(null);
+  const warnedMissingVinRef = useRef(false);
 
   /**
    * Adds a new message to the messages array (keeps only last 20 messages)
@@ -33,6 +45,58 @@ export default function useVissWebSocket() {
     });
   }, []);
 
+  const persistIncomingMessage = useCallback(
+    async (message, activeVin) => {
+      if (typeof persistWebSocketMessageAction !== "function") {
+        throw new Error("persistWebSocketMessageAction is not available");
+      }
+
+      await persistWebSocketMessageAction(activeVin, message);
+    },
+    [persistWebSocketMessageAction]
+  );
+
+  useEffect(() => {
+    if (isConnected || !defaultHost) {
+      return;
+    }
+
+    setHostIP(defaultHost);
+  }, [defaultHost, isConnected]);
+
+  useEffect(() => {
+    if (!isConnected) {
+      warnedVinChangeRef.current = null;
+      return;
+    }
+
+    const nextHost = defaultHost || hostIP;
+    const vinChanged = vin !== connectedVinRef.current;
+    const hostChanged = nextHost !== connectedHostRef.current;
+
+    if (!vinChanged && !hostChanged) {
+      warnedVinChangeRef.current = null;
+      return;
+    }
+
+    const warningKey = `${connectedVinRef.current || "none"}@${
+      connectedHostRef.current || "none"
+    }->${vin || "none"}@${nextHost || "none"}`;
+    if (warnedVinChangeRef.current === warningKey) {
+      return;
+    }
+
+    warnedVinChangeRef.current = warningKey;
+    reconnectTargetRef.current = nextHost;
+    addMessage(
+      "system",
+      `Vehicle selection changed to ${
+        vin || "none"
+      }. Reconnecting WebSocket so status sync follows the active vehicle.`
+    );
+    socketRef.current?.close(1000, "Vehicle selection changed");
+  }, [addMessage, defaultHost, hostIP, isConnected, vin]);
+
   /**
    * Connects to the VISS WebSocket server
    * @param {string} host - Host IP address
@@ -47,6 +111,10 @@ export default function useVissWebSocket() {
       setIsConnecting(true);
       setConnectionError(null);
       setHostIP(host);
+      connectedVinRef.current = vin || null;
+      connectedHostRef.current = host || null;
+      warnedVinChangeRef.current = null;
+      warnedMissingVinRef.current = false;
 
       try {
         // If the host already contains a port, use it directly. Otherwise, default to 8888 for WebSocket.
@@ -61,7 +129,23 @@ export default function useVissWebSocket() {
         socket.onopen = () => {
           setIsConnected(true);
           setIsConnecting(false);
+          connectedHostRef.current = cleanHost.includes(":")
+            ? cleanHost
+            : `${cleanHost}:8888`;
           addMessage("system", `Connected to ${wsUrl}`);
+
+          if (connectedVinRef.current) {
+            addMessage(
+              "system",
+              `Vehicle status sync is bound to ${connectedVinRef.current}`
+            );
+          } else {
+            warnedMissingVinRef.current = true;
+            addMessage(
+              "system",
+              "Connected without a selected vehicle. WebSocket messages will be logged, and the connection will refresh automatically when you pick a vehicle."
+            );
+          }
         };
 
         socket.onmessage = (event) => {
@@ -71,19 +155,56 @@ export default function useVissWebSocket() {
           try {
             const parsedMessage = JSON.parse(event.data);
 
-            // Insert to MongoDB
-            insertVissMessage(parsedMessage).catch((error) => {
-              console.error("MongoDB insertion error:", error);
+            persistIncomingMessage(
+              parsedMessage,
+              connectedVinRef.current
+            ).catch((error) => {
+              console.error("WebSocket persistence error:", error);
+              addMessage(
+                "error",
+                `Failed to persist WebSocket message: ${error.message}`
+              );
             });
 
-            // Track subscription IDs
-            if (parsedMessage.subscriptionId && parsedMessage.requestId) {
+            if (
+              parsedMessage.action === "subscription" &&
+              parsedMessage.data &&
+              !connectedVinRef.current &&
+              !warnedMissingVinRef.current
+            ) {
+              warnedMissingVinRef.current = true;
+              addMessage(
+                "system",
+                "Skipping vehicle status sync for WebSocket subscription updates because no vehicle was selected when the connection was opened."
+              );
+            }
+
+            // Subscription tracking is driven exclusively by server
+            // acknowledgements so the map mirrors actual server state:
+            //   - register on `subscribe` ack
+            //   - unregister on `unsubscribe` ack
+            // Streaming notifications (`action: "subscription"`) are ignored
+            // here to avoid resurrecting an entry that has just been removed.
+            if (
+              parsedMessage.action === "subscribe" &&
+              parsedMessage.subscriptionId
+            ) {
               setActiveSubscriptions((prev) => {
                 const newMap = new Map(prev);
                 newMap.set(parsedMessage.subscriptionId, {
                   requestId: parsedMessage.requestId,
                   timestamp: new Date().toLocaleTimeString(),
                 });
+                return newMap;
+              });
+            } else if (
+              parsedMessage.action === "unsubscribe" &&
+              parsedMessage.subscriptionId
+            ) {
+              setActiveSubscriptions((prev) => {
+                if (!prev.has(parsedMessage.subscriptionId)) return prev;
+                const newMap = new Map(prev);
+                newMap.delete(parsedMessage.subscriptionId);
                 return newMap;
               });
             }
@@ -96,6 +217,11 @@ export default function useVissWebSocket() {
           setIsConnected(false);
           setIsConnecting(false);
           socketRef.current = null;
+          connectedVinRef.current = null;
+          connectedHostRef.current = null;
+          warnedVinChangeRef.current = null;
+          warnedMissingVinRef.current = false;
+          setActiveSubscriptions(new Map());
 
           if (event.wasClean) {
             addMessage("system", "Connection closed");
@@ -122,17 +248,32 @@ export default function useVissWebSocket() {
         addMessage("error", `Connection error: ${error.message}`);
       }
     },
-    [addMessage]
+    [addMessage, vin, persistIncomingMessage]
   );
+
+  useEffect(() => {
+    if (isConnected || isConnecting || !reconnectTargetRef.current) {
+      return;
+    }
+
+    const nextHost = reconnectTargetRef.current;
+    reconnectTargetRef.current = null;
+    connectToHost(nextHost);
+  }, [connectToHost, isConnected, isConnecting]);
 
   /**
    * Disconnects from the WebSocket server
    */
   const disconnect = useCallback(() => {
     if (socketRef.current) {
+      reconnectTargetRef.current = null;
       socketRef.current.close(1000, "User disconnected");
       socketRef.current = null;
     }
+    connectedVinRef.current = null;
+    connectedHostRef.current = null;
+    warnedVinChangeRef.current = null;
+    warnedMissingVinRef.current = false;
     setIsConnected(false);
     setActiveSubscriptions(new Map()); // Clear subscriptions on disconnect
   }, []);
@@ -289,18 +430,10 @@ export default function useVissWebSocket() {
    */
   const unsubscribeFromId = useCallback(
     (subscriptionId) => {
+      // The active-subscriptions map is updated only when the server confirms
+      // the unsubscribe via the onmessage handler.
       const command = buildUnsubscribeCommand(subscriptionId);
-      const success = sendCommand(command);
-
-      if (success) {
-        setActiveSubscriptions((prev) => {
-          const newMap = new Map(prev);
-          newMap.delete(subscriptionId);
-          return newMap;
-        });
-      }
-
-      return success;
+      return sendCommand(command);
     },
     [buildUnsubscribeCommand, sendCommand]
   );
