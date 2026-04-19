@@ -3,15 +3,21 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        NEXT_PUBLIC_VSS_JSON_PATH: ${NEXT_PUBLIC_VSS_JSON_PATH:-/data/zod_vss.json}
-        NEXT_PUBLIC_MQTT_VIN: ${NEXT_PUBLIC_MQTT_VIN:-MDBAX9C12XYZ1234}
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
     ports:
       - "8080:8080"
     env_file:
       - .env
     environment:
-      - MONGODB_URI=${MONGODB_URI}
+      MONGODB_URI: ${MONGODB_URI:-}
+      DATABASE_NAME: ${DATABASE_NAME:-vissr-integration}
+      VSS_JSON_PATH: ${VSS_JSON_PATH:-/data/zod_vss.json}
+      VSS_JSON_ROOT_DIR: ${VSS_JSON_ROOT_DIR:-/app/public}
+      MQTT_VIN: ${MQTT_VIN:-MDBAX9C12XYZ1234}
+      VEHICLE_VINS: ${VEHICLE_VINS:-MDBAX9C12XYZ1234}
+      VEHICLE_DEFINITIONS_B64: ${VEHICLE_DEFINITIONS_B64:-}
 
   mosquitto:
     image: eclipse-mosquitto:2
@@ -23,32 +29,6 @@ services:
       - mosquitto-data:/mosquitto/data
       - mosquitto-log:/mosquitto/log
 
-  mongodb:
-    image: mongo:8
-    ports:
-      - "27017:27017"
-    command: ["--replSet", "rs0"]
-    profiles:
-      - local
-    volumes:
-      - mongodb-data:/data/db
-
-  mongo-init:
-    image: mongo:8
-    depends_on:
-      mongodb:
-        condition: service_started
-    profiles:
-      - local
-    volumes:
-      - ./infra/mongodb/dump:/dump
-    command: >
-      bash -c "
-        sleep 5;
-        mongosh --host mongodb:27017 --eval 'try { rs.status() } catch (e) { rs.initiate({_id: \"rs0\", members: [{_id: 0, host: \"mongodb:27017\"}]}) }';
-        mongorestore --host mongodb:27017 /dump;
-      "
-
   vissr:
     build:
       context: ./infra/vissr
@@ -58,7 +38,7 @@ services:
         condition: service_started
     environment:
       - MQTT_BROKER_ADDR=mosquitto
-      - MQTT_VEHICLE_VIN=MDBAX9C12XYZ1234
+      - MQTT_VEHICLE_VIN=${MQTT_VIN:-MDBAX9C12XYZ1234}
     ports:
       - "8888:8080" # VISS WebSocket port (Container WS runs on 8080. Mapping to host 8888)
       - "8090:8888" # VISS HTTP port (Container HTTP runs on 8888. Mapping to host 8090)
@@ -66,46 +46,41 @@ services:
       - "8887:8887" # VISS gRPC port
     volumes:
       - ./infra/vissr/data:/app/data
-      - ./infra/vissr/config/uds-registration.json:/app/server/vissv2server/uds-registration.json
-
-  vissr-truck1:
-    profiles:
-      - truck
-    build:
-      context: ./infra/vissr
-      dockerfile: Dockerfile
-    depends_on:
-      mosquitto:
-        condition: service_started
-    entrypoint: ["/app/start-truck1.sh"]
-    environment:
-      - MQTT_BROKER_ADDR=mosquitto
-      - MQTT_VEHICLE_VIN=1FABP34W72K012345
-    ports:
-      - "9888:8080" # Truck1 VISS WebSocket port
-      - "9090:8888" # Truck1 VISS HTTP port
-      - "9600:8600" # Truck1 VISS AT server
-      - "9887:8887" # Truck1 VISS gRPC port
-    volumes:
-      - ./infra/vissr/data:/app/data
-      - ./infra/vissr/truck1-viss.him:/app/truck1-demo/viss.him:ro
-      - ./infra/vissr/config/uds-registration-truck1.json:/app/truck1-demo/uds-registration.json:ro
 
   mqtt-bridge:
     build:
       context: ./infra/mqtt-bridge
       dockerfile: Dockerfile
+    depends_on:
+      mongo-init:
+        condition: service_completed_successfully
+      mosquitto:
+        condition: service_started
     env_file:
       - .env
     environment:
-      - MQTT_BROKER_URL=mqtt://mosquitto:1883
-      - MONGODB_URI=${MONGODB_URI:-mongodb://mongodb:27017}
-      - DATABASE_NAME=${DATABASE_NAME:-vissr_db}
-      - VEHICLE_VINS=${VEHICLE_VINS:-MDBAX9C12XYZ1234}
-    depends_on:
-      - mosquitto
+      MQTT_BROKER_URL: mqtt://mosquitto:1883
+      MONGODB_URI: ${MONGODB_URI:-}
+      DATABASE_NAME: ${DATABASE_NAME:-vissr-integration}
+      VEHICLE_VINS: ${VEHICLE_VINS:-MDBAX9C12XYZ1234}
+      VSS_JSON_PATH: ${VSS_JSON_PATH:-/data/zod_vss.json}
+      VSS_JSON_ROOT_DIR: ${VSS_JSON_ROOT_DIR:-/app/public}
+      VEHICLE_DEFINITIONS_B64: ${VEHICLE_DEFINITIONS_B64:-}
+    volumes:
+      - ./frontend/public:/app/public:ro
+
+  mongo-init:
+    image: mongo:8
+    env_file:
+      - .env
+    volumes:
+      - ./infra/mongodb/init:/scripts:ro
+    command: ["bash", "/scripts/run-init.sh"]
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-}
+      DATABASE_NAME: ${DATABASE_NAME:-vissr-integration}
+      MONGO_BOOTSTRAP_CONFIG_B64: ${MONGO_BOOTSTRAP_CONFIG_B64:-}
 
 volumes:
   mosquitto-data:
   mosquitto-log:
-  mongodb-data:

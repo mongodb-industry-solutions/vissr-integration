@@ -1,0 +1,114 @@
+[
+  {
+    "path": "Vehicle.Speed",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "22.5" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "24.0" }
+    ]
+  },
+  {
+    "path": "Vehicle.Chassis.Accelerator.PedalPosition",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "14" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "22" }
+    ]
+  },
+  {
+    "path": "Vehicle.Chassis.Brake.PedalPosition",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "1" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "0" }
+    ]
+  },
+  {
+    "path": "Vehicle.Chassis.SteeringWheel.Angle",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "-2" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "4" }
+    ]
+  },
+  {
+    "path": "Vehicle.CurrentLocation.Latitude",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "57.70950" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "57.70966" }
+    ]
+  },
+  {
+    "path": "Vehicle.CurrentLocation.Longitude",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "11.97520" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "11.97536" }
+    ]
+  },
+  {
+    "path": "Vehicle.CurrentLocation.Heading",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "102" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "108" }
+    ]
+  },
+  {
+    "path": "Vehicle.VehicleIdentification.VIN",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "2FABP34W72K123456" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "2FABP34W72K123456" }
+    ]
+  },
+  {
+    "path": "Vehicle.Trailer.IsConnected",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "true" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "true" }
+    ]
+  },
+  {
+    "path": "Vehicle.Chassis.Axle.Axle1.Wheel.Pos10.Brake.Temperature",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "39" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "42" }
+    ]
+  },
+  {
+    "path": "Vehicle.Chassis.Axle.Axle1.Wheel.Pos10.Tire.Pressure",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "825" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "821" }
+    ]
+  },
+  {
+    "path": "Trailer.TrailerIdentification.VIN",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "4FABP34W72K345678" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "4FABP34W72K345678" }
+    ]
+  },
+  {
+    "path": "Trailer.TrailerType",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "SEMI_TRAILER" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "SEMI_TRAILER" }
+    ]
+  },
+  {
+    "path": "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Speed",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "22.0" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "23.7" }
+    ]
+  },
+  {
+    "path": "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Brake.Temperature",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "36" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "38" }
+    ]
+  },
+  {
+    "path": "Trailer.Chassis.Axle.Axle10.Wheel.Pos13.Tire.Pressure",
+    "dp": [
+      { "ts": "2026-03-30T10:00:00Z", "value": "770" },
+      { "ts": "2026-03-30T10:00:05Z", "value": "767" }
+    ]
+  }
+]

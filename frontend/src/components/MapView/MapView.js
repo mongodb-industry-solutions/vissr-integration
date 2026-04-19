@@ -161,6 +161,8 @@ function MapUpdater({ location, isExpanded, enableMapRotation = false }) {
 
 export default function MapView({
   vehicleStatus,
+  selectedVin,
+  hasVehicles = false,
   isLoading,
   isExpanded = true,
   onToggleExpand,
@@ -215,13 +217,21 @@ export default function MapView({
       onToggleExpand={onToggleExpand}
     >
       <div className="flex-1 min-h-0 overflow-hidden mt-4">
-        {isLoading && !location ? (
+        {!selectedVin ? (
+          <div className="flex items-center justify-center h-full">
+            <Subtitle>
+              {hasVehicles
+                ? "Select a vehicle to view its location"
+                : "No vehicles connected"}
+            </Subtitle>
+          </div>
+        ) : isLoading && !location ? (
           <div className="flex items-center justify-center h-full">
             <Subtitle>Loading location data...</Subtitle>
           </div>
         ) : !location ? (
           <div className="flex items-center justify-center h-full">
-            <Subtitle>No location data available</Subtitle>
+            <Subtitle>No location data available for {selectedVin}</Subtitle>
           </div>
         ) : (
           <div className="h-full w-full rounded-lg overflow-hidden relative">

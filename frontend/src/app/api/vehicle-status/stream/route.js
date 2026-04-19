@@ -12,6 +12,14 @@ export const dynamic = "force-dynamic";
  * for real-time vehicle_status collection updates.
  */
 export async function GET(request) {
+  const vin = request.nextUrl.searchParams.get("vin");
+  if (!vin) {
+    return NextResponse.json(
+      { error: "vin query parameter is required" },
+      { status: 400 },
+    );
+  }
+
   // Create a TransformStream for SSE
   const stream = new TransformStream();
   const writer = stream.writable.getWriter();
@@ -20,6 +28,7 @@ export async function GET(request) {
   let cleanup = null;
   let heartbeatInterval = null;
   let isClosed = false;
+  let stage = "initializing";
 
   // Function to send SSE message
   const sendSSE = async (data) => {
@@ -49,10 +58,11 @@ export async function GET(request) {
   // Initialize the stream
   (async () => {
     try {
+      stage = "loading initial vehicle status";
       // Send initial vehicle status
-      const initialStatus = await getVehicleStatus();
+      const initialStatus = await getVehicleStatus(vin);
       if (initialStatus) {
-        sendSSE({
+        await sendSSE({
           type: "initial",
           data: initialStatus,
           timestamp: new Date().toISOString(),
@@ -60,6 +70,7 @@ export async function GET(request) {
       }
 
       // Create change stream for vehicle_status collection
+      stage = "opening vehicle_status change stream";
       cleanup = await createChangeStream(
         "vehicle_status",
         (change) => {
@@ -73,6 +84,13 @@ export async function GET(request) {
           }
         },
         {
+          pipeline: [
+            {
+              $match: {
+                "fullDocument.Vehicle.VehicleIdentification.VIN": vin,
+              },
+            },
+          ],
           onError: (error) => {
             if (!isClosed) {
               console.error("Change stream error:", error);
@@ -87,6 +105,7 @@ export async function GET(request) {
       );
 
       // Send heartbeat every 30 seconds to keep connection alive
+      stage = "streaming updates";
       heartbeatInterval = setInterval(() => {
         if (!isClosed) {
           sendSSE({
@@ -109,7 +128,7 @@ export async function GET(request) {
         await closeWriter();
       });
     } catch (error) {
-      console.error("Error initializing change stream:", error);
+      console.error(`Error during ${stage}:`, error);
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
         heartbeatInterval = null;
@@ -117,7 +136,7 @@ export async function GET(request) {
       if (!isClosed) {
         sendSSE({
           type: "error",
-          message: error.message,
+          message: `Vehicle status stream failed while ${stage}: ${error.message}`,
           timestamp: new Date().toISOString(),
         });
       }

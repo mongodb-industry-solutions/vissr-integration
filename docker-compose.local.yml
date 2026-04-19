@@ -1,0 +1,47 @@
+services:
+  front:
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/?directConnection=true
+
+  mqtt-bridge:
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/?directConnection=true
+
+  mongodb:
+    image: mongo:8
+    ports:
+      - "27017:27017"
+    command: ["--replSet", "rs0"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "mongosh",
+          "--quiet",
+          "--host",
+          "localhost:27017",
+          "--eval",
+          "quit(db.adminCommand({ ping: 1 }).ok ? 0 : 1)",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+    volumes:
+      - mongodb-data:/data/db
+
+  mongo-init:
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    environment:
+      MONGODB_URI: mongodb://mongodb:27017/?directConnection=true
+      DATABASE_NAME: ${DATABASE_NAME:-vissr-integration}
+      MONGO_INIT_REPLICA_SET_MODE: local
+      MONGO_INIT_REPLICA_SET_HOST: mongodb:27017
+      MONGO_INIT_SOURCE_DATABASE_NAME: vissr-integration
+      MONGO_INIT_SEED_DUMP_DIR: /dump
+    volumes:
+      - ./infra/mongodb/dump:/dump
+
+volumes:
+  mongodb-data:

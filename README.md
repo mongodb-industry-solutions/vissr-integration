@@ -22,38 +22,51 @@ This project implements a robust cloud synchronization architecture for vehicle 
 
 ### Implementation Details
 
-Our reference implementation supports a scalable, decoupled architecture using MQTT, while also supporting direct WebSocket connections for localized simulations.
+Our reference implementation supports two connectivity modes: a decoupled architecture using MQTT, and direct WebSocket connections for localized simulations.
 
 ```mermaid
-graph TD
-    subgraph Vehicles ["Vehicles (VISSR Servers)"]
-        T1[Truck 1 - Default]
-        T2[Truck 2 - Profile: truck]
-    end
+flowchart LR
+  subgraph vehicles [VISSR Simulators]
+    zod["Default VISSR (ZOD)"]
+    trucks["Truck profile vehicles"]
+  end
 
-    subgraph Messaging Layer
-        MQ[Mosquitto MQTT Broker]
-    end
+  subgraph messaging [Messaging]
+    mqtt["Mosquitto"]
+    bridge["MQTT bridge"]
+  end
 
-    subgraph Data Management
-        MB[MQTT Bridge Microservice]
-        DB[(MongoDB)]
-    end
+  subgraph app [Next.js Frontend]
+    ui["UI + vehicle selector"]
+    wsMat["WebSocket materializer (default)"]
+  end
 
-    subgraph User Interface
-        UI[Next.js Web App]
-    end
+  subgraph mongo [MongoDB]
+    messages[("messages")]
+    status[("vehicle_status")]
+    telemetry[("telemetry")]
+    trigger["Atlas trigger (optional)"]
+  end
 
-    T1 -- Pub/Sub (MQTT) --> MQ
-    T2 -- Pub/Sub (MQTT) --> MQ
+  zod -->|"MQTT telemetry"| mqtt
+  trucks -->|"MQTT telemetry"| mqtt
+  ui -->|"MQTT commands"| mqtt
+  mqtt -->|"responses / subscriptions"| bridge
+  bridge --> messages
+  bridge --> status
+  bridge --> telemetry
 
-    MQ -- Intercepts Telemetry --> MB
-    MB -- Inserts & Updates --> DB
+  ui -.->|"Direct VISS WebSocket"| zod
+  ui -.->|"Direct VISS WebSocket"| trucks
+  ui -->|"incoming WS messages"| wsMat
+  wsMat --> messages
+  wsMat --> status
+  wsMat --> telemetry
 
-    DB -- MongoDB Change Streams --> UI
-
-    UI -- Command & Control (MQTT) --> MQ
-    UI -. Direct Connection (WebSocket) .-> T1
+  status -->|"Change Streams + SSE"| ui
+  messages -.->|"trigger mode only"| trigger
+  trigger -.->|"legacy optional sync"| status
+  trigger -.->|"legacy optional sync"| telemetry
 ```
 
 ## Key Features
@@ -72,41 +85,95 @@ graph TD
 - [**MongoDB Atlas**](https://www.mongodb.com/cloud/atlas) (Optional) - You can use the provided local replica set or connect to an Atlas cluster.
 - [**Zenseact Open Dataset (ZOD)**](https://zod.zenseact.com/) (Optional) - For realistic vehicle data playback.
 
-## Getting Started
+## Quick start
 
-The easiest way to run the entire stack is using Docker Compose.
-
-### 1. Clone the Repository and Configure Environment
+1. Create a local environment file:
 
 ```bash
-cp .env.example .env.local
-# Edit .env.local to add your MONGODB_URI if using Atlas.
-# Otherwise, it defaults to the local Docker MongoDB container.
+cp .env.example .env
 ```
 
-### 2. Launch the Application Stack
-
-You can launch the default stack (Frontend, Mosquitto, MQTT Bridge, MongoDB, and 1 Truck) using:
+2. Start the default stack:
 
 ```bash
-docker compose --profile local up -d
+make start
 ```
 
-To simulate a fleet with **two trucks**, add the `truck` profile:
+3. Open [http://localhost:8080](http://localhost:8080).
+
+4. Pick a vehicle, choose `MQTT` or `WebSocket`, connect, then use the command builder.
+
+## Run modes
+
+The Makefile is the supported entrypoint. Defaults are:
+
+- `PROFILE=zod`
+- `DB=local`
+- `NUM_VEHICLES=1`
+
+Useful commands:
 
 ```bash
-docker compose --profile local --profile truck up -d
+make prepare
+make build
+make start
+make restart
+make stop
+make clean
 ```
 
-### 3. Connect and Explore
+Common combinations:
 
-1. Open [http://localhost:8080](http://localhost:8080) (or your configured frontend port) in your browser.
-2. Select your connection protocol:
-   - **MQTT**: Connects via Mosquitto. Watch telemetry stream into MongoDB and update the UI in real-time.
-   - **WebSocket**: Connect directly to a specific VISSR server IP/port.
-3. Click **Connect**.
-4. Use the **Command Builder** to subscribe to vehicle signals (e.g., `Vehicle.Speed`).
-5. Watch the vehicle data appear in the status panel and on the map!
+```bash
+# Default ZOD profile with local MongoDB
+make start
+
+# Truck profile with one predefined truck
+make start PROFILE=truck
+
+# Truck profile with two predefined trucks
+make start PROFILE=truck NUM_VEHICLES=2
+
+# Default ZOD profile against Atlas
+make start DB=atlas
+
+# Truck profile against Atlas
+make start PROFILE=truck DB=atlas NUM_VEHICLES=2
+```
+
+## What the flags mean
+
+- `PROFILE=zod` runs the default VISSR simulator backed by the ZOD sample feed.
+- `PROFILE=truck` runs the predefined truck vehicle definitions from `infra/vissr/vehicle-definitions/index.json`.
+- `NUM_VEHICLES` selects how many predefined truck definitions to start. At the moment the repo defines two truck vehicles.
+- `DB=local` starts the bundled MongoDB replica set from `docker-compose.local.yml`.
+- `DB=atlas` skips the local MongoDB container and uses `MONGODB_URI` from `.env`.
+
+`make prepare` generates `.generated/runtime.env` and `.generated/docker-compose.trucks.generated.yml`, which are then consumed by the other targets.
+
+## Connection modes
+
+### MQTT
+
+- Commands are published to `/${vin}/Vehicle`.
+- The MQTT bridge resolves the VIN from the topic and writes typed data into `messages`, `vehicle_status`, and `telemetry`.
+- The UI listens for `vehicle_status` updates through MongoDB Change Streams.
+
+### WebSocket
+
+- The UI connects directly to the selected vehicle's VISS WebSocket endpoint.
+- Incoming messages are always stored in `messages`.
+- By default, subscription updates are also materialized by the app into `vehicle_status` and `telemetry`.
+- If you set `WEBSOCKET_MATERIALIZATION_MODE=trigger`, the legacy Atlas trigger path remains available as an alternative sync option.
+
+## Environment
+
+Only a small `.env` file is needed:
+
+- `MONGODB_URI` is required for `DB=atlas`
+- `DATABASE_NAME` is optional and defaults to `vissr-integration`
+
+Runtime values such as `VEHICLE_VINS`, `VSS_JSON_PATH`, `VEHICLE_DEFINITIONS_B64`, and `VSS_JSON_ROOT_DIR` are generated automatically.
 
 ## Generating Custom Trip Data (Optional)
 

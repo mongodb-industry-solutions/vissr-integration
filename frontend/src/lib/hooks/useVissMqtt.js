@@ -8,9 +8,10 @@ import { insertVissMessage } from "@/lib/db/messages";
  * Custom hook for managing VISS MQTT connections and message handling.
  * Provides connection management, message sending, and response tracking functionality.
  *
+ * @param {string|null} vin - Vehicle VIN used for MQTT command topics
  * @returns {Object} MQTT state and control functions
  */
-export default function useVissMqtt() {
+export default function useVissMqtt(vin) {
   const [hostIP, setHostIP] = useState("127.0.0.1");
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -20,7 +21,6 @@ export default function useVissMqtt() {
 
   const clientRef = useRef(null);
   const clientIdRef = useRef(`frontend_${Math.random().toString(16).slice(2, 10)}`);
-  const vin = process.env.NEXT_PUBLIC_MQTT_VIN || "MDBAX9C12XYZ1234";
 
   /**
    * Adds a new message to the messages array (keeps only last 20 messages)
@@ -89,14 +89,32 @@ export default function useVissMqtt() {
               });
             }
 
-            // Track subscription IDs
-            if (parsedMessage.subscriptionId && parsedMessage.requestId) {
+            // Subscription tracking is driven exclusively by server
+            // acknowledgements so the map mirrors actual server state:
+            //   - register on `subscribe` ack
+            //   - unregister on `unsubscribe` ack
+            // Streaming notifications (`action: "subscription"`) are ignored
+            // here to avoid resurrecting an entry that has just been removed.
+            if (
+              parsedMessage.action === "subscribe" &&
+              parsedMessage.subscriptionId
+            ) {
               setActiveSubscriptions((prev) => {
                 const newMap = new Map(prev);
                 newMap.set(parsedMessage.subscriptionId, {
                   requestId: parsedMessage.requestId,
                   timestamp: new Date().toLocaleTimeString(),
                 });
+                return newMap;
+              });
+            } else if (
+              parsedMessage.action === "unsubscribe" &&
+              parsedMessage.subscriptionId
+            ) {
+              setActiveSubscriptions((prev) => {
+                if (!prev.has(parsedMessage.subscriptionId)) return prev;
+                const newMap = new Map(prev);
+                newMap.delete(parsedMessage.subscriptionId);
                 return newMap;
               });
             }
@@ -145,6 +163,11 @@ export default function useVissMqtt() {
 
       if (!message.trim()) {
         addMessage("error", "Cannot send empty message");
+        return false;
+      }
+
+      if (!vin) {
+        addMessage("error", "Select a vehicle before sending MQTT commands");
         return false;
       }
 
@@ -216,18 +239,10 @@ export default function useVissMqtt() {
 
   const unsubscribeFromId = useCallback(
     (subscriptionId) => {
+      // The active-subscriptions map is updated only when the server confirms
+      // the unsubscribe via the onmessage handler.
       const command = buildUnsubscribeCommand(subscriptionId);
-      const success = sendCommand(command);
-
-      if (success) {
-        setActiveSubscriptions((prev) => {
-          const newMap = new Map(prev);
-          newMap.delete(subscriptionId);
-          return newMap;
-        });
-      }
-
-      return success;
+      return sendCommand(command);
     },
     [buildUnsubscribeCommand, sendCommand]
   );

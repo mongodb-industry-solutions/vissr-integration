@@ -1,17 +1,40 @@
-build:
-	NEXT_PUBLIC_VSS_JSON_PATH=/data/zod_vss.json NEXT_PUBLIC_MQTT_VIN=MDBAX9C12XYZ1234 VEHICLE_VINS=MDBAX9C12XYZ1234 docker compose up --build -d
+PROFILE ?= zod
+DB ?= local
+NUM_VEHICLES ?= 1
 
-start:
-	NEXT_PUBLIC_VSS_JSON_PATH=/data/zod_vss.json NEXT_PUBLIC_MQTT_VIN=MDBAX9C12XYZ1234 VEHICLE_VINS=MDBAX9C12XYZ1234 docker compose up --build -d
+GENERATED_DIR := .generated
+RUNTIME_ENV_FILE := $(GENERATED_DIR)/runtime.env
+TRUCK_COMPOSE_FILE := $(GENERATED_DIR)/docker-compose.trucks.generated.yml
+GENERATOR := node scripts/generate-runtime-config.mjs
 
-start-truck:
-	NEXT_PUBLIC_VSS_JSON_PATH=/data/truck1_trailer1_vss.json NEXT_PUBLIC_MQTT_VIN=1FABP34W72K012345 VEHICLE_VINS=1FABP34W72K012345 docker compose --profile truck up --build -d front mqtt-bridge vissr-truck1
+COMPOSE_FILES := -f docker-compose.yml -f $(TRUCK_COMPOSE_FILE)
 
-start-local:
-	MONGODB_URI="mongodb://mongodb:27017/vissr-integration?replicaSet=rs0" docker compose --profile local up -d
+ifeq ($(DB),local)
+COMPOSE_FILES += -f docker-compose.local.yml
+endif
 
-stop:
-	docker compose --profile local stop
+ALL_COMPOSE_FILES := -f docker-compose.yml -f $(TRUCK_COMPOSE_FILE) -f docker-compose.local.yml
 
-clean:
-	docker compose --profile local down --rmi all -v
+.PHONY: prepare build up start restart stop clean
+
+prepare:
+	@mkdir -p $(GENERATED_DIR)
+	@$(GENERATOR) --profile $(PROFILE) --num-vehicles $(NUM_VEHICLES) --output-compose-file $(TRUCK_COMPOSE_FILE) --output-env-file $(RUNTIME_ENV_FILE)
+
+build: prepare
+	@set -a; . $(RUNTIME_ENV_FILE); set +a; docker compose $(COMPOSE_FILES) build
+
+up: start
+
+start: prepare
+	@set -a; . $(RUNTIME_ENV_FILE); set +a; docker compose $(COMPOSE_FILES) up --build -d --remove-orphans
+
+restart:
+	@$(MAKE) stop PROFILE=$(PROFILE) DB=$(DB) NUM_VEHICLES=$(NUM_VEHICLES)
+	@$(MAKE) start PROFILE=$(PROFILE) DB=$(DB) NUM_VEHICLES=$(NUM_VEHICLES)
+
+stop: prepare
+	@set -a; . $(RUNTIME_ENV_FILE); set +a; docker compose $(ALL_COMPOSE_FILES) stop
+
+clean: prepare
+	@set -a; . $(RUNTIME_ENV_FILE); set +a; docker compose $(ALL_COMPOSE_FILES) down --rmi all -v --remove-orphans
