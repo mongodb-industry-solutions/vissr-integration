@@ -43,7 +43,7 @@ const STATUS_VISUALS = {
 };
 
 export default function ConnectionStatusPill({ onClick }) {
-  const { status, host } = useGlobalConnection();
+  const { status } = useGlobalConnection();
   const visuals = STATUS_VISUALS[status] || STATUS_VISUALS.idle;
 
   return (
@@ -63,7 +63,6 @@ export default function ConnectionStatusPill({ onClick }) {
         style={{ backgroundColor: visuals.dot }}
       />
       <span>MQTT · {visuals.label}</span>
-      <span className="font-normal opacity-70">{host}</span>
       <Icon glyph="Settings" size="small" fill={visuals.color} />
     </button>
   );

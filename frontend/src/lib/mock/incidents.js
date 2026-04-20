@@ -48,44 +48,6 @@ function pickWheel(wheels) {
   };
 }
 
-export function createSeedAlerts(vehicles) {
-  if (!Array.isArray(vehicles) || vehicles.length === 0) {
-    return [];
-  }
-
-  const seed = [];
-  vehicles.forEach((vehicle, index) => {
-    const isFirst = index === 0;
-    const definition = isFirst
-      ? INCIDENT_TYPES.LOW_PRESSURE
-      : INCIDENT_TYPES.HIGH_TEMP;
-    const value = isFirst ? 612 : 78;
-
-    seed.push({
-      id: buildAlertId(),
-      vin: vehicle.vin,
-      vehicleLabel: vehicle.label || vehicle.vin,
-      type: definition.type,
-      severity: definition.severity,
-      title: definition.title,
-      wheelLabel: isFirst ? "Trailer axle 1, position 13" : "Drive axle 2, position 5",
-      wheelPath: null,
-      value,
-      message: definition.suggest({
-        wheelLabel: isFirst
-          ? "Trailer axle 1, position 13"
-          : "Drive axle 2, position 5",
-        value,
-      }),
-      createdAt: new Date(Date.now() - (index + 1) * 60_000).toISOString(),
-      detectedBy: "Cloud ML model",
-      status: "pending",
-    });
-  });
-
-  return seed;
-}
-
 export function createMockIncident({ vehicle, wheels = [] }) {
   if (!vehicle) {
     return null;

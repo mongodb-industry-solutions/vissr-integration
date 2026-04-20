@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import Card from "@leafygreen-ui/card";
 import Button from "@leafygreen-ui/button";
-import Badge from "@leafygreen-ui/badge";
 import Icon from "@leafygreen-ui/icon";
 import IconButton from "@leafygreen-ui/icon-button";
 import Modal from "@leafygreen-ui/modal";
@@ -13,6 +12,7 @@ import { palette } from "@leafygreen-ui/palette";
 import { useFleetData } from "@/lib/context/FleetDataContext";
 import { useAlerts } from "@/lib/context/AlertsContext";
 import { useGlobalConnection } from "@/lib/context/GlobalConnectionContext";
+import { useBrand } from "@/lib/context/BrandContext";
 
 const FEATURES = [
   {
@@ -66,12 +66,16 @@ const STORYLINE = [
 
 function MetricTile({ label, value, hint }) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white px-4 py-3 shadow-sm">
-      <div className="text-xs uppercase tracking-wide text-gray-500">
+    <div className="rounded-lg border border-white/10 bg-white/[0.06] px-4 py-3 backdrop-blur-sm">
+      <div className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
         {label}
       </div>
-      <div className="mt-1 text-2xl font-semibold text-gray-900">{value}</div>
-      {hint ? <div className="text-xs text-gray-500">{hint}</div> : null}
+      <div className="mt-1 text-2xl font-semibold leading-none text-white">
+        {value}
+      </div>
+      {hint ? (
+        <div className="mt-1 text-xs text-gray-400">{hint}</div>
+      ) : null}
     </div>
   );
 }
@@ -171,6 +175,7 @@ export default function HomeOverview() {
   const { vehicles, statuses, isLoadingVehicles } = useFleetData();
   const { pendingAlerts, sentAlerts } = useAlerts();
   const { status: connectionStatus } = useGlobalConnection();
+  const { title } = useBrand();
   const [walkOpen, setWalkOpen] = useState(false);
   const [archOpen, setArchOpen] = useState(false);
 
@@ -179,18 +184,19 @@ export default function HomeOverview() {
   ).length;
 
   return (
-    <div className="space-y-12">
-      <section className="grid items-center gap-10 rounded-2xl bg-gradient-to-br from-[#0c1c2c] via-[#0a2540] to-[#0c1c2c] px-8 py-12 text-white shadow-xl md:grid-cols-2">
-        <div className="space-y-6">
-          <Badge variant="green">Live demo</Badge>
-          <H1 className="!text-white">Connected Trucks</H1>
-          <Body className="!text-base !text-gray-200">
+    <div className="flex flex-col gap-6">
+      <section className="grid items-stretch gap-8 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0c1c2c] via-[#0a2540] to-[#0c1c2c] p-8 text-white shadow-xl md:grid-cols-2 md:p-10">
+        <div className="flex flex-col">
+          <H1 className="!text-white !text-4xl md:!text-5xl !leading-tight">
+            {title}
+          </H1>
+          <Body className="mt-4 max-w-xl !text-base !leading-relaxed !text-gray-300">
             A guided tour of how the VISS standard, MQTT, and MongoDB work
             together to monitor a small fleet of trucks, detect tire incidents,
             and push warnings back to the driver in real time.
           </Body>
 
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="mt-8 flex flex-wrap items-center gap-3">
             <Link href="/fleet">
               <Button
                 variant="primary"
@@ -210,7 +216,7 @@ export default function HomeOverview() {
             </IconButton>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 pt-2 text-gray-900 md:grid-cols-4">
+          <div className="mt-auto grid grid-cols-2 gap-3 pt-8 md:grid-cols-4">
             <MetricTile
               label="Vehicles"
               value={isLoadingVehicles ? "…" : vehicles.length || 0}
@@ -236,7 +242,7 @@ export default function HomeOverview() {
           </div>
         </div>
 
-        <Card className="overflow-hidden bg-white p-3">
+        <Card className="flex items-center overflow-hidden bg-white p-4">
           <button
             type="button"
             onClick={() => setArchOpen(true)}
@@ -247,7 +253,7 @@ export default function HomeOverview() {
             <img
               src="/architecture.svg"
               alt="Architecture diagram showing VISSR vehicles publishing telemetry over MQTT into MongoDB and being consumed by the demo app"
-              className="block h-auto w-full"
+              className="block h-auto w-full object-contain"
               style={{ imageRendering: "auto" }}
             />
             <span className="pointer-events-none absolute right-2 top-2 flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-xs font-medium text-gray-700 opacity-0 shadow transition group-hover:opacity-100">
@@ -258,30 +264,25 @@ export default function HomeOverview() {
         </Card>
       </section>
 
-      <section className="space-y-4">
-        <div>
-          <H2>Why this matters</H2>
-          <Body className="text-gray-600">
-            Four building blocks make this demo possible. Every page in the demo
-            exercises one or more of them.
-          </Body>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {FEATURES.map((feature) => (
-            <Card key={feature.title} className="h-full p-5">
-              <div className="flex items-center gap-2">
-                <span
-                  className="flex h-8 w-8 items-center justify-center rounded-md"
-                  style={{ backgroundColor: palette.green.light3 }}
-                >
-                  <Icon glyph={feature.icon} fill={palette.green.dark2} />
-                </span>
-                <H3 className="!text-base">{feature.title}</H3>
-              </div>
-              <Body className="mt-2 text-sm text-gray-600">{feature.body}</Body>
-            </Card>
-          ))}
-        </div>
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {FEATURES.map((feature) => (
+          <Card key={feature.title} className="h-full p-5">
+            <span
+              className="flex h-11 w-11 items-center justify-center rounded-lg"
+              style={{ backgroundColor: palette.green.light3 }}
+            >
+              <Icon
+                glyph={feature.icon}
+                fill={palette.green.dark2}
+                size="large"
+              />
+            </span>
+            <H3 className="mt-4 !text-base">{feature.title}</H3>
+            <Body className="mt-2 text-sm leading-relaxed text-gray-600">
+              {feature.body}
+            </Body>
+          </Card>
+        ))}
       </section>
 
       <WalkDemoModal open={walkOpen} setOpen={setWalkOpen} />

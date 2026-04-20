@@ -18,6 +18,7 @@ services:
       MQTT_VIN: ${MQTT_VIN:-MDBAX9C12XYZ1234}
       VEHICLE_VINS: ${VEHICLE_VINS:-MDBAX9C12XYZ1234}
       VEHICLE_DEFINITIONS_B64: ${VEHICLE_DEFINITIONS_B64:-}
+      PROFILE: ${PROFILE:-zod}
 
   mosquitto:
     image: eclipse-mosquitto:2

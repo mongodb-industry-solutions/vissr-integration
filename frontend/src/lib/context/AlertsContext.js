@@ -4,15 +4,12 @@ import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import {
   ALERT_SEVERITY,
   createMockIncident,
-  createSeedAlerts,
 } from "@/lib/mock/incidents";
 import { useFleetData } from "@/lib/context/FleetDataContext";
 import { useGlobalConnection } from "@/lib/context/GlobalConnectionContext";
@@ -33,15 +30,6 @@ export function AlertsProvider({ children }) {
   const { vehicles } = useFleetData();
   const { sendSetCommand } = useGlobalConnection();
   const [alerts, setAlerts] = useState([]);
-  const seededRef = useRef(false);
-
-  useEffect(() => {
-    if (seededRef.current || vehicles.length === 0) {
-      return;
-    }
-    seededRef.current = true;
-    setAlerts(createSeedAlerts(vehicles));
-  }, [vehicles]);
 
   const updateAlert = useCallback((id, patch) => {
     setAlerts((current) =>
