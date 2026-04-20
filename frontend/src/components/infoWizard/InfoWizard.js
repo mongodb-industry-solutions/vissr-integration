@@ -28,7 +28,7 @@ const InfoWizard = ({
         Tell me more!
       </Button>
 
-      <Modal open={open} setOpen={setOpen} size={"default"} className="z-2">
+      <Modal open={open} setOpen={setOpen} size={"default"} className="!z-[100]">
         <div className="overflow-y-auto h-[500px]">
           <Tabs
             aria-label="info wizard tabs"

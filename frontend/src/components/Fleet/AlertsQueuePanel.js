@@ -93,10 +93,11 @@ function PendingRow({ alert }) {
         )}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
-        {feedback ? (
-          <span className="mr-auto text-xs text-gray-500">{feedback}</span>
-        ) : null}
+      {feedback ? (
+        <div className="mt-2 text-xs text-gray-500">{feedback}</div>
+      ) : null}
+
+      <div className="mt-3 flex flex-nowrap items-center justify-end gap-2">
         <Button
           variant="default"
           size="small"
@@ -108,7 +109,7 @@ function PendingRow({ alert }) {
             setIsEditing((prev) => !prev);
           }}
         >
-          {isEditing ? "Save" : "Edit message"}
+          {isEditing ? "Save" : "Edit"}
         </Button>
         <Button
           variant="default"
@@ -125,7 +126,7 @@ function PendingRow({ alert }) {
           onClick={handleDispatch}
           disabled={!isConnected}
         >
-          Approve &amp; dispatch
+          Approve
         </Button>
       </div>
     </div>
@@ -178,13 +179,12 @@ export default function AlertsQueuePanel({ activeVin }) {
   const targetVin = activeVin || vehicles[0]?.vin;
 
   return (
-    <Card className="flex flex-col p-5">
-      <div className="flex items-start justify-between gap-3">
+    <Card className="flex flex-col min-h-0 h-full p-4">
+      <div className="flex items-start justify-between gap-3 flex-shrink-0">
         <div className="min-w-0 flex-1">
-          <H3>Alerts queue</H3>
-          <Body className="text-sm text-gray-600">
-            Each alert is suggested by the cloud ML model. A human reviews the
-            wording and dispatches the message as a VISS{" "}
+          <H3 className="!text-base">Alerts queue</H3>
+          <Body className="text-xs text-gray-600">
+            ML-suggested alerts. Review wording and dispatch as a VISS{" "}
             <code className="rounded bg-gray-100 px-1">set</code>.
           </Body>
         </div>
@@ -195,14 +195,14 @@ export default function AlertsQueuePanel({ activeVin }) {
             leftGlyph={<Icon glyph="Plus" />}
             onClick={() => simulateIncident(targetVin)}
           >
-            <span className="whitespace-nowrap">Simulate incident</span>
+            <span className="whitespace-nowrap">Simulate</span>
           </Button>
         </div>
       </div>
 
       {!isConnected ? (
         <div
-          className="mt-3 rounded-md border-l-4 px-3 py-2 text-xs"
+          className="mt-2 rounded-md border-l-4 px-3 py-1.5 text-xs flex-shrink-0"
           style={{
             borderLeftColor: palette.yellow.base,
             backgroundColor: palette.yellow.light3,
@@ -214,12 +214,17 @@ export default function AlertsQueuePanel({ activeVin }) {
         </div>
       ) : null}
 
-      <Tabs aria-label="alerts tabs" selected={tab} setSelected={setTab} className="mt-4">
+      <Tabs
+        aria-label="alerts tabs"
+        selected={tab}
+        setSelected={setTab}
+        className="mt-3 flex flex-col min-h-0 flex-1"
+      >
         <Tab name={`Pending (${pendingAlerts.length})`}>
-          <div className="space-y-3 py-3">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 py-2 pr-1">
             {pendingAlerts.length === 0 ? (
               <Body className="text-sm text-gray-500">
-                No pending alerts. Use “Simulate incident” to add one.
+                No pending alerts. Use “Simulate” to add one.
               </Body>
             ) : (
               pendingAlerts.map((alert) => (
@@ -229,7 +234,7 @@ export default function AlertsQueuePanel({ activeVin }) {
           </div>
         </Tab>
         <Tab name={`In-flight (${sentAlerts.length})`}>
-          <div className="space-y-3 py-3">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 py-2 pr-1">
             {sentAlerts.length === 0 ? (
               <Body className="text-sm text-gray-500">
                 No alerts waiting on driver acknowledgement.
@@ -242,7 +247,7 @@ export default function AlertsQueuePanel({ activeVin }) {
           </div>
         </Tab>
         <Tab name={`History (${acknowledgedAlerts.length})`}>
-          <div className="space-y-3 py-3">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-2 py-2 pr-1">
             {acknowledgedAlerts.length === 0 ? (
               <Body className="text-sm text-gray-500">
                 Acknowledged alerts will appear here.

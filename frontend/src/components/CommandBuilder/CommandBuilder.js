@@ -3,7 +3,6 @@
 import React from "react";
 import { Body } from "@leafygreen-ui/typography";
 import Button from "@leafygreen-ui/button";
-import TextArea from "@leafygreen-ui/text-area";
 import TextInput from "@leafygreen-ui/text-input";
 import { Combobox, ComboboxOption } from "@leafygreen-ui/combobox";
 import { RadioBoxGroup, RadioBox } from "@leafygreen-ui/radio-box-group";
@@ -87,273 +86,243 @@ export default function CommandBuilder({
     isExpanded,
   });
 
+  const filterEditor = (
+    <div className="flex flex-col min-h-0 h-full">
+      <div className="flex items-center justify-between flex-shrink-0 pb-2">
+        <Body className="!text-xs !font-semibold uppercase tracking-wide text-gray-600">
+          Advanced options
+        </Body>
+        {getAvailableVariants(-1).length > 0 && (
+          <Button
+            variant="primaryOutline"
+            size="xsmall"
+            onClick={addFilter}
+            leftGlyph={<Icon glyph="Plus" />}
+          >
+            Add filter
+          </Button>
+        )}
+      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1 space-y-2">
+        {filters.length === 0 ? (
+          <div className="rounded border border-dashed border-gray-200 p-3 text-xs text-gray-500">
+            No filters configured. Add one to narrow the subscription or query.
+          </div>
+        ) : (
+          filters.map((filter, index) => (
+            <div
+              key={index}
+              className="border border-gray-200 rounded p-2 space-y-2"
+            >
+              <div className="flex items-end gap-2">
+                <div className="flex-1">
+                  <Select
+                    label="Filter variant"
+                    placeholder="Select variant"
+                    value={filter.variant}
+                    onChange={(value) =>
+                      updateFilter(index, "variant", value)
+                    }
+                    size="small"
+                  >
+                    {getAvailableVariants(index).map((variant) => (
+                      <Option key={variant} value={variant}>
+                        {variant}
+                      </Option>
+                    ))}
+                  </Select>
+                </div>
+                <div className="flex-[2]">
+                  <TextInput
+                    label="Parameter"
+                    placeholder={getParameterPlaceholder(filter.variant)}
+                    value={filter.parameter}
+                    onChange={(e) =>
+                      updateFilter(index, "parameter", e.target.value)
+                    }
+                    sizeVariant="small"
+                  />
+                </div>
+                <Button
+                  variant="dangerOutline"
+                  size="small"
+                  onClick={() => removeFilter(index)}
+                  leftGlyph={<Icon glyph="X" />}
+                >
+                  Remove
+                </Button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  const commandEditor = (
+    <div className="flex flex-col min-h-0 h-full">
+      <div className="flex items-center justify-between flex-shrink-0 pb-2">
+        <Body className="!text-xs !font-semibold uppercase tracking-wide text-gray-600">
+          Command
+        </Body>
+        {jsonError ? (
+          <span className="text-[11px] text-red-600 truncate max-w-[60%]">
+            {jsonError}
+          </span>
+        ) : null}
+      </div>
+      <textarea
+        className={`flex-1 min-h-0 w-full rounded-md border bg-white px-3 py-2 font-mono text-[12px] leading-relaxed text-gray-900 focus:outline-none focus:ring-2 focus:ring-offset-0 resize-none ${
+          jsonError
+            ? "border-red-400 focus:ring-red-200"
+            : "border-gray-300 focus:ring-green-300"
+        }`}
+        placeholder='{"action": "get", "path": "Vehicle.Speed", "requestId": "12345"}'
+        value={generatedCommand}
+        onChange={handleJsonChange}
+        spellCheck={false}
+      />
+    </div>
+  );
+
+  const hasDynamicBody = includeFilter || showCommandEditor;
+
+  const dynamicBody = (() => {
+    if (includeFilter && showCommandEditor) {
+      return (
+        <div className="flex-1 min-h-0 grid grid-rows-2 gap-3">
+          <div className="min-h-0">{filterEditor}</div>
+          <div className="min-h-0">{commandEditor}</div>
+        </div>
+      );
+    }
+    if (includeFilter) {
+      return <div className="flex-1 min-h-0">{filterEditor}</div>;
+    }
+    if (showCommandEditor) {
+      return <div className="flex-1 min-h-0">{commandEditor}</div>;
+    }
+    return null;
+  })();
+
   return (
     <ExpandableSection
       title="Command Builder"
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
     >
-      <>
-        {/* Scrollable content area */}
-        <div className="flex-1 overflow-y-auto px-1" style={{ minHeight: 0 }}>
-          {/* Controls section */}
-          <div className="space-y-4 mt-4">
-            <div className="flex items-end gap-3">
-              <div className="flex-1 min-w-0">
-                <Combobox
-                  label="Select Signals"
-                  placeholder="Choose vehicle signals"
-                  chipTruncationLocation="none"
-                  overflow="scroll-x"
-                  multiselect={true}
-                  value={selectedSignals}
-                  onChange={(values) => setSelectedSignals(values)}
-                  className="max-w-full"
-                >
-                  {signals.map((signal) => (
-                    <ComboboxOption key={signal.value} value={signal.value}>
-                      {signal.label}
-                    </ComboboxOption>
-                  ))}
-                </Combobox>
-              </div>
-              <div className="pb-2">
-                <Checkbox
-                  label="Select All"
-                  checked={
-                    selectedSignals.length === signals.length &&
-                    signals.length > 0
-                  }
-                  disabled={
-                    selectedSignals.length === signals.length &&
-                    signals.length > 0
-                  }
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedSignals(signals.map((s) => s.value));
-                    } else {
-                      setSelectedSignals([]);
-                    }
-                  }}
-                />
-              </div>
+      <div className="flex flex-col min-h-0 h-full">
+        <div className="flex-shrink-0 space-y-3 pt-3">
+          <div className="flex items-end gap-3">
+            <div className="flex-1 min-w-0">
+              <Combobox
+                label="Select signals"
+                placeholder="Choose vehicle signals"
+                chipTruncationLocation="none"
+                overflow="scroll-x"
+                multiselect={true}
+                value={selectedSignals}
+                onChange={(values) => setSelectedSignals(values)}
+                className="max-w-full"
+              >
+                {signals.map((signal) => (
+                  <ComboboxOption key={signal.value} value={signal.value}>
+                    {signal.label}
+                  </ComboboxOption>
+                ))}
+              </Combobox>
             </div>
-
-            <RadioBoxGroup
-              name="command-type"
-              label="Command Type"
-              size="full"
-              value={selectedCommand}
-              onChange={handleCommandTypeChange}
-              className="h-8"
-            >
-              <RadioBox value="get">Get</RadioBox>
-              <RadioBox value="set">Set</RadioBox>
-              <RadioBox value="subscribe">Subscribe</RadioBox>
-              <RadioBox value="unsubscribe">Unsubscribe</RadioBox>
-            </RadioBoxGroup>
-
-            {selectedCommand === "set" && (
-              <TextInput
-                label="Value"
-                value={setValue}
-                onChange={(e) => setSetValue(e.target.value)}
+            <div className="pb-2">
+              <Checkbox
+                label="Select all"
+                checked={
+                  selectedSignals.length === signals.length &&
+                  signals.length > 0
+                }
+                disabled={
+                  selectedSignals.length === signals.length &&
+                  signals.length > 0
+                }
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedSignals(signals.map((s) => s.value));
+                  } else {
+                    setSelectedSignals([]);
+                  }
+                }}
               />
-            )}
-
-            {/* Toggles section */}
-            <div className="flex items-center gap-6">
-              {selectedCommand !== "set" &&
-                selectedCommand !== "unsubscribe" && (
-                  <div className="flex items-center gap-3">
-                    <Body className="text-sm">Advanced options</Body>
-                    <Toggle
-                      checked={includeFilter}
-                      onChange={() => setIncludeFilter(!includeFilter)}
-                      disabled={isFilterDisabled}
-                      label="Include Filter"
-                      aria-label="Include Filter"
-                      size="small"
-                    />
-                  </div>
-                )}
-              <div className="flex items-center gap-3">
-                <Body className="text-sm">Command editor</Body>
-                <Toggle
-                  checked={showCommandEditor}
-                  onChange={() => setShowCommandEditor(!showCommandEditor)}
-                  label="Show Command"
-                  aria-label="Show Command"
-                  size="small"
-                />
-              </div>
             </div>
           </div>
 
-          {/* Dynamic content area based on toggles */}
-          <div className="mt-4">
-            {includeFilter && showCommandEditor ? (
-              // Both enabled: Show both sections
-              <>
-                <div className="space-y-3 mb-4">
-                  {/* Advanced Options */}
-                  {filters.map((filter, index) => (
-                    <div
-                      key={index}
-                      className="border border-gray-200 rounded p-3 space-y-2"
-                    >
-                      <div className="flex items-end gap-2">
-                        <div className="flex-1">
-                          <Select
-                            label="Filter Variant"
-                            placeholder="Select variant"
-                            value={filter.variant}
-                            onChange={(value) =>
-                              updateFilter(index, "variant", value)
-                            }
-                          >
-                            {getAvailableVariants(index).map((variant) => (
-                              <Option key={variant} value={variant}>
-                                {variant}
-                              </Option>
-                            ))}
-                          </Select>
-                        </div>
-                        <div className="flex-2">
-                          <TextInput
-                            label="Parameter"
-                            placeholder={getParameterPlaceholder(
-                              filter.variant,
-                            )}
-                            value={filter.parameter}
-                            onChange={(e) =>
-                              updateFilter(index, "parameter", e.target.value)
-                            }
-                          />
-                        </div>
-                        <Button
-                          variant="dangerOutline"
-                          size="small"
-                          onClick={() => removeFilter(index)}
-                          leftGlyph={<Icon glyph="X" />}
-                        >
-                          Remove
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {getAvailableVariants(-1).length > 0 && (
-                    <Button
-                      variant="primaryOutline"
-                      size="small"
-                      onClick={addFilter}
-                      leftGlyph={<Icon glyph="Plus" />}
-                    >
-                      Add Filter
-                    </Button>
-                  )}
-                </div>
-                <div>
-                  {/* Command Editor */}
-                  <TextArea
-                    label="Command"
-                    placeholder='{"action": "get", "path": "Vehicle.Speed", "requestId": "12345"}'
-                    value={generatedCommand}
-                    onChange={handleJsonChange}
-                    rows={8}
-                    state={jsonError ? "error" : "none"}
-                    errorMessage={jsonError}
+          <RadioBoxGroup
+            name="command-type"
+            label="Command type"
+            size="full"
+            value={selectedCommand}
+            onChange={handleCommandTypeChange}
+            className="h-8"
+          >
+            <RadioBox value="get">Get</RadioBox>
+            <RadioBox value="set">Set</RadioBox>
+            <RadioBox value="subscribe">Subscribe</RadioBox>
+            <RadioBox value="unsubscribe">Unsubscribe</RadioBox>
+          </RadioBoxGroup>
+
+          {selectedCommand === "set" && (
+            <TextInput
+              label="Value"
+              value={setValue}
+              onChange={(e) => setSetValue(e.target.value)}
+            />
+          )}
+
+          <div className="flex items-center gap-6 pt-1">
+            {selectedCommand !== "set" &&
+              selectedCommand !== "unsubscribe" && (
+                <div className="flex items-center gap-2">
+                  <Body className="!text-xs text-gray-600">
+                    Advanced options
+                  </Body>
+                  <Toggle
+                    checked={includeFilter}
+                    onChange={() => setIncludeFilter(!includeFilter)}
+                    disabled={isFilterDisabled}
+                    label="Include filter"
+                    aria-label="Include filter"
+                    size="small"
                   />
                 </div>
-              </>
-            ) : includeFilter ? (
-              // Only advanced options enabled
-              <div className="space-y-3">
-                {filters.map((filter, index) => (
-                  <div
-                    key={index}
-                    className="border border-gray-200 rounded p-3 space-y-2"
-                  >
-                    <div className="flex items-end gap-2">
-                      <div className="flex-1">
-                        <Select
-                          label="Filter Variant"
-                          placeholder="Select variant"
-                          value={filter.variant}
-                          onChange={(value) =>
-                            updateFilter(index, "variant", value)
-                          }
-                        >
-                          {getAvailableVariants(index).map((variant) => (
-                            <Option key={variant} value={variant}>
-                              {variant}
-                            </Option>
-                          ))}
-                        </Select>
-                      </div>
-                      <div className="flex-2">
-                        <TextInput
-                          label="Parameter"
-                          placeholder={getParameterPlaceholder(filter.variant)}
-                          value={filter.parameter}
-                          onChange={(e) =>
-                            updateFilter(index, "parameter", e.target.value)
-                          }
-                        />
-                      </div>
-                      <Button
-                        variant="dangerOutline"
-                        size="small"
-                        onClick={() => removeFilter(index)}
-                        leftGlyph={<Icon glyph="X" />}
-                      >
-                        Remove
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-                {getAvailableVariants(-1).length > 0 && (
-                  <Button
-                    variant="primaryOutline"
-                    size="small"
-                    onClick={addFilter}
-                    leftGlyph={<Icon glyph="Plus" />}
-                  >
-                    Add Filter
-                  </Button>
-                )}
-              </div>
-            ) : showCommandEditor ? (
-              // Only command editor enabled
-              <div>
-                <TextArea
-                  label="Command"
-                  placeholder='{"action": "get", "path": "Vehicle.Speed", "requestId": "12345"}'
-                  value={generatedCommand}
-                  onChange={handleJsonChange}
-                  rows={10}
-                  state={jsonError ? "error" : "none"}
-                  errorMessage={jsonError}
-                />
-              </div>
-            ) : null}
+              )}
+            <div className="flex items-center gap-2">
+              <Body className="!text-xs text-gray-600">Command editor</Body>
+              <Toggle
+                checked={showCommandEditor}
+                onChange={() => setShowCommandEditor(!showCommandEditor)}
+                label="Show command"
+                aria-label="Show command"
+                size="small"
+              />
+            </div>
           </div>
         </div>
 
-        {/* Fixed bottom section with Send button */}
-        <div className="mt-4 pt-4 flex-shrink-0 px-1">
-          <div className="flex justify-end">
-            <Button
-              variant="primary"
-              onClick={handleSend}
-              disabled={isSendDisabled}
-              leftGlyph={<Icon glyph="ArrowRight" />}
-            >
-              Send Command
-            </Button>
-          </div>
+        {hasDynamicBody ? (
+          <div className="flex flex-col flex-1 min-h-0 mt-3">{dynamicBody}</div>
+        ) : (
+          <div className="flex-1 min-h-0" aria-hidden="true" />
+        )}
+
+        <div className="flex-shrink-0 mt-3 pt-3 border-t border-gray-200 flex justify-end">
+          <Button
+            variant="primary"
+            onClick={handleSend}
+            disabled={isSendDisabled}
+            leftGlyph={<Icon glyph="ArrowRight" />}
+          >
+            Send command
+          </Button>
         </div>
-      </>
+      </div>
     </ExpandableSection>
   );
 }

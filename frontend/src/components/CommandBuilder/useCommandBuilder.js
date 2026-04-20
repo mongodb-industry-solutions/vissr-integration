@@ -65,7 +65,7 @@ export default function useCommandBuilder({
   // Filter array state
   const [filters, setFilters] = useState([]);
   const [includeFilter, setIncludeFilter] = useState(false);
-  const [showCommandEditor, setShowCommandEditor] = useState(false);
+  const [showCommandEditor, setShowCommandEditor] = useState(true);
 
   const addFilter = () => {
     const newFilter = { variant: "timebased", parameter: "" };

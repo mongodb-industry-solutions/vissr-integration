@@ -225,13 +225,23 @@ export default function TireDiagram({ readings, variant = "full" }) {
     return <CompactStrip readings={readings} />;
   }
 
+  // "fit" variant sizes the SVG to fill its parent (with preserved aspect
+  // ratio) and removes the hard max-width cap so it can shrink/grow with
+  // viewport-constrained containers (e.g. full-screen modal).
+  const isFit = variant === "fit";
+
   return (
-    <div className="flex flex-col items-center gap-4">
+    <div
+      className={`flex flex-col items-center gap-3 ${
+        isFit ? "h-full w-full min-h-0" : ""
+      }`}
+    >
       <svg
         viewBox={`0 0 ${SVG_WIDTH} ${totalHeight}`}
+        preserveAspectRatio="xMidYMid meet"
         width="100%"
-        height="auto"
-        style={{ maxWidth: 360 }}
+        height={isFit ? "100%" : "auto"}
+        style={isFit ? { flex: 1, minHeight: 0 } : { maxWidth: 360 }}
       >
         <VehicleBody
           x={(SVG_WIDTH - 220) / 2}

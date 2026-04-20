@@ -18,20 +18,29 @@ export default function ExpandableSection({
   isExpanded = true,
   onToggleExpand,
   children,
+  headerSlot,
 }) {
+  const collapsible = typeof onToggleExpand === "function";
+
   return (
     <div
-      className={`flex flex-col overflow-hidden ${
-        isExpanded ? "flex-1 h-full" : ""
+      className={`flex flex-col ${
+        isExpanded ? "flex-1 h-full min-h-0" : ""
       }`}
     >
-      {/* Collapsible Header */}
       <div
-        className="flex items-center justify-between cursor-pointer hover:opacity-80 transition-opacity flex-shrink-0"
-        onClick={onToggleExpand}
+        className={`flex items-center justify-between flex-shrink-0 ${
+          collapsible ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
+        }`}
+        onClick={collapsible ? onToggleExpand : undefined}
       >
         <H3 className="mb-0">{title}</H3>
-        <Icon glyph={isExpanded ? "ChevronDown" : "ChevronRight"} />
+        <div className="flex items-center gap-2">
+          {headerSlot}
+          {collapsible ? (
+            <Icon glyph={isExpanded ? "ChevronDown" : "ChevronRight"} />
+          ) : null}
+        </div>
       </div>
 
       {!isExpanded && <div className="flex-1" />}

@@ -17,19 +17,25 @@ function average(numbers) {
 
 function KpiTile({ icon, label, value, hint, accent = palette.gray.dark2 }) {
   return (
-    <Card className="flex h-full items-center gap-4 p-4">
+    <Card className="flex h-full items-center gap-3 px-3 py-2">
       <span
-        className="flex h-11 w-11 items-center justify-center rounded-md"
+        className="flex h-8 w-8 items-center justify-center rounded-md flex-shrink-0"
         style={{ backgroundColor: palette.gray.light3 }}
       >
-        <Icon glyph={icon} fill={accent} />
+        <Icon glyph={icon} fill={accent} size="small" />
       </span>
-      <div>
-        <div className="text-xs uppercase tracking-wide text-gray-500">
+      <div className="min-w-0">
+        <div className="text-[10px] uppercase tracking-wide text-gray-500">
           {label}
         </div>
-        <div className="text-2xl font-semibold text-gray-900">{value}</div>
-        {hint ? <div className="text-xs text-gray-500">{hint}</div> : null}
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-base font-semibold text-gray-900 leading-tight">
+            {value}
+          </span>
+          {hint ? (
+            <span className="text-[11px] text-gray-500 truncate">{hint}</span>
+          ) : null}
+        </div>
       </div>
     </Card>
   );
@@ -64,12 +70,12 @@ export default function FleetKpiStrip() {
   const avgTemp = average(aggregates.temperatures);
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
       <KpiTile
         icon="Visibility"
-        label="Vehicles online"
+        label="Online"
         value={`${onlineCount}/${vehicles.length || 0}`}
-        hint="reporting telemetry"
+        hint="streaming"
         accent={palette.green.dark2}
       />
       <KpiTile
@@ -81,16 +87,14 @@ export default function FleetKpiStrip() {
       />
       <KpiTile
         icon="Wrench"
-        label="Avg tire pressure"
+        label="Avg pressure"
         value={avgPressure ? `${Math.round(avgPressure)} kPa` : "—"}
-        hint="across all wheels"
         accent={palette.blue.dark2}
       />
       <KpiTile
         icon="Sweep"
-        label="Avg tire temp"
+        label="Avg temp"
         value={avgTemp ? `${avgTemp.toFixed(1)}°C` : "—"}
-        hint="across all wheels"
         accent={palette.yellow.dark2}
       />
     </div>

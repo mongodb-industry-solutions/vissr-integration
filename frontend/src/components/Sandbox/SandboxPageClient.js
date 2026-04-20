@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import Card from "@leafygreen-ui/card";
-import { Body, H2, H3, Subtitle } from "@leafygreen-ui/typography";
+import Tooltip from "@leafygreen-ui/tooltip";
+import Icon from "@leafygreen-ui/icon";
 import useVissWebSocket from "@/lib/hooks/useVissWebSocket";
 import useVissMqtt from "@/lib/hooks/useVissMqtt";
 import useVssSignals from "@/lib/hooks/useVssSignals";
 import useVehicleStatusStream from "@/lib/hooks/useVehicleStatusStream";
 import ConnectionManager from "@/components/ConnectionManager/ConnectionManager";
 import CommandBuilder from "@/components/CommandBuilder/CommandBuilder";
-import MessagesLog from "@/components/MessagesLog/MessagesLog";
 import VehicleStatus from "@/components/VehicleStatus/VehicleStatus";
 import VehicleSelector from "@/components/VehicleSelector/VehicleSelector";
 import { useFleetData } from "@/lib/context/FleetDataContext";
@@ -21,6 +21,92 @@ const MapView = dynamic(() => import("@/components/MapView/MapView"), {
 });
 
 const DEFAULT_SELECTED_SIGNALS = ["Vehicle.Speed"];
+
+function SubscriptionsChip({ activeSubscriptions }) {
+  const count = activeSubscriptions?.size || 0;
+  const entries = activeSubscriptions
+    ? Array.from(activeSubscriptions.entries())
+    : [];
+
+  const trigger = (
+    <button
+      type="button"
+      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition ${
+        count > 0
+          ? "border-green-300 bg-green-50 text-green-800 hover:bg-green-100"
+          : "border-gray-200 bg-gray-50 text-gray-600"
+      }`}
+    >
+      <Icon glyph="Bell" size="small" />
+      <span>
+        {count} {count === 1 ? "subscription" : "subscriptions"}
+      </span>
+    </button>
+  );
+
+  if (count === 0) {
+    return (
+      <Tooltip align="bottom" justify="end" trigger={trigger}>
+        No subscriptions active in this sandbox session yet. Use the command
+        builder to start one.
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Tooltip align="bottom" justify="end" trigger={trigger}>
+      <div className="space-y-1 text-xs">
+        <div className="font-semibold">{count} active</div>
+        {entries.slice(0, 6).map(([subscriptionId, info]) => (
+          <div key={subscriptionId} className="font-mono">
+            <span>{subscriptionId}</span>
+            {info?.requestId ? (
+              <span className="opacity-70"> · req {info.requestId}</span>
+            ) : null}
+          </div>
+        ))}
+        {entries.length > 6 ? (
+          <div className="opacity-70">+{entries.length - 6} more…</div>
+        ) : null}
+      </div>
+    </Tooltip>
+  );
+}
+
+function RightPanelTabs({ active, onChange }) {
+  const options = [
+    { id: "map", label: "Map", glyph: "GlobeAmericas" },
+    { id: "json", label: "JSON", glyph: "CurlyBraces" },
+  ];
+  return (
+    <div
+      role="tablist"
+      aria-label="Vehicle view"
+      className="inline-flex rounded-md border border-gray-200 bg-gray-100 p-0.5 text-xs font-semibold"
+    >
+      {options.map((opt) => {
+        const isActive = active === opt.id;
+        return (
+          <button
+            key={opt.id}
+            role="tab"
+            aria-selected={isActive}
+            type="button"
+            onClick={() => onChange(opt.id)}
+            className={`inline-flex items-center gap-1 rounded px-2.5 py-1 transition ${
+              isActive
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            <Icon glyph={opt.glyph} size="small" />
+            {opt.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export default function SandboxPageClient({
   defaultVssJsonPath,
@@ -36,10 +122,7 @@ export default function SandboxPageClient({
 
   const [protocol, setProtocol] = useState("mqtt");
   const [selectedVin, setSelectedVin] = useState(null);
-  const [isCommandBuilderExpanded, setIsCommandBuilderExpanded] = useState(true);
-  const [isMessagesExpanded, setIsMessagesExpanded] = useState(false);
-  const [isVehicleStatusExpanded, setIsVehicleStatusExpanded] = useState(true);
-  const [isMapViewExpanded, setIsMapViewExpanded] = useState(false);
+  const [rightView, setRightView] = useState("json");
 
   useEffect(() => {
     if (vehicles.length === 0) {
@@ -88,7 +171,6 @@ export default function SandboxPageClient({
     connectToHost,
     disconnect,
     sendCommand,
-    clearMessages,
     setHost,
     buildGetCommand,
     buildSetCommand,
@@ -118,27 +200,23 @@ export default function SandboxPageClient({
   }, [messages, appendLog, activeVehicleVin, protocol]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <H2>Sandbox</H2>
-        <Body className="text-gray-600">
-          Pick a vehicle, choose a protocol, and exercise the VISS command
-          surface directly. Useful for debugging and exploring the schema.
-        </Body>
-      </div>
+    <div className="flex flex-col h-full min-h-0 gap-4">
+      <Card className="flex flex-wrap items-center gap-3 px-4 py-2.5">
+        <VehicleSelector
+          vehicles={vehicles}
+          selectedVin={activeVehicleVin}
+          isLoading={isLoadingVehicles}
+          error={vehiclesError}
+          isStreamConnected={isVehicleStatusConnected}
+          isStreamLoading={isLoadingVehicleStatus}
+          lastUpdate={vehicleStatusLastUpdate}
+          onChange={setSelectedVin}
+          compact
+        />
 
-      <Card className="space-y-4 p-5">
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <VehicleSelector
-            vehicles={vehicles}
-            selectedVin={activeVehicleVin}
-            isLoading={isLoadingVehicles}
-            error={vehiclesError}
-            isStreamConnected={isVehicleStatusConnected}
-            isStreamLoading={isLoadingVehicleStatus}
-            lastUpdate={vehicleStatusLastUpdate}
-            onChange={setSelectedVin}
-          />
+        <SubscriptionsChip activeSubscriptions={activeSubscriptions} />
+
+        <div className="ml-auto flex items-center gap-3">
           <ConnectionManager
             hostIP={hostIP}
             protocol={protocol}
@@ -149,99 +227,62 @@ export default function SandboxPageClient({
             onDisconnect={disconnect}
             onSetHost={setHost}
             onProtocolChange={setProtocol}
+            compact
           />
         </div>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <div className="space-y-6">
-          <Card className="flex flex-col p-5">
-            <CommandBuilder
-              signals={signals}
-              defaultSelectedSignals={DEFAULT_SELECTED_SIGNALS}
-              isConnected={isConnected}
-              onSendCommand={sendCommand}
-              buildGetCommand={buildGetCommand}
-              buildSetCommand={buildSetCommand}
-              buildSubscribeCommand={buildSubscribeCommand}
-              activeSubscriptions={activeSubscriptions}
-              isExpanded={isCommandBuilderExpanded}
-              onToggleExpand={() =>
-                setIsCommandBuilderExpanded(!isCommandBuilderExpanded)
-              }
-            />
-          </Card>
+      <div className="grid flex-1 min-h-0 gap-4 lg:grid-cols-2">
+        <Card className="flex flex-col min-h-0 p-4">
+          <CommandBuilder
+            signals={signals}
+            defaultSelectedSignals={DEFAULT_SELECTED_SIGNALS}
+            isConnected={isConnected}
+            onSendCommand={sendCommand}
+            buildGetCommand={buildGetCommand}
+            buildSetCommand={buildSetCommand}
+            buildSubscribeCommand={buildSubscribeCommand}
+            activeSubscriptions={activeSubscriptions}
+            isExpanded={true}
+          />
+        </Card>
 
-          <Card className="flex flex-col p-5">
-            <MessagesLog
-              messages={messages}
-              onClear={clearMessages}
-              isExpanded={isMessagesExpanded}
-              onToggleExpand={() =>
-                setIsMessagesExpanded(!isMessagesExpanded)
-              }
-            />
-          </Card>
-
-          <Card className="p-5">
-            <div className="flex items-center justify-between">
-              <H3 className="!text-base">Active subscriptions</H3>
-              <Subtitle className="!text-xs uppercase tracking-wide text-gray-500">
-                {activeSubscriptions?.size || 0} live
-              </Subtitle>
+        <Card className="flex flex-col min-h-0 p-4">
+          <div className="flex items-center justify-between flex-shrink-0">
+            <div className="text-base font-semibold leading-tight">
+              Vehicle status
             </div>
-            {activeSubscriptions && activeSubscriptions.size > 0 ? (
-              <ul className="mt-3 space-y-2 text-sm">
-                {Array.from(activeSubscriptions.entries()).map(
-                  ([subscriptionId, info]) => (
-                    <li
-                      key={subscriptionId}
-                      className="flex items-center justify-between rounded border border-gray-200 px-3 py-2"
-                    >
-                      <code className="text-xs">{subscriptionId}</code>
-                      <span className="text-xs text-gray-500">
-                        request {info.requestId} · {info.timestamp}
-                      </span>
-                    </li>
-                  ),
-                )}
-              </ul>
-            ) : (
-              <Body className="mt-3 text-sm text-gray-500">
-                No subscriptions active in this sandbox session yet. Use the
-                command builder to start one.
-              </Body>
-            )}
-          </Card>
-        </div>
+            <RightPanelTabs active={rightView} onChange={setRightView} />
+          </div>
 
-        <div className="space-y-6">
-          <Card className="flex flex-col p-5">
-            <VehicleStatus
-              vehicleStatus={vehicleStatus}
-              selectedVin={activeVehicleVin}
-              hasVehicles={vehicles.length > 0}
-              isLoading={isLoadingVehicleStatus}
-              error={vehicleStatusError}
-              isExpanded={isVehicleStatusExpanded}
-              onToggleExpand={() =>
-                setIsVehicleStatusExpanded(!isVehicleStatusExpanded)
-              }
-            />
-          </Card>
-          <Card className="flex flex-col p-5">
-            <MapView
-              vehicleStatus={vehicleStatus}
-              selectedVin={activeVehicleVin}
-              hasVehicles={vehicles.length > 0}
-              isLoading={isLoadingVehicleStatus}
-              isExpanded={isMapViewExpanded}
-              onToggleExpand={() =>
-                setIsMapViewExpanded(!isMapViewExpanded)
-              }
-            />
-          </Card>
-        </div>
+          <div className="flex-1 min-h-0 mt-3">
+            {rightView === "map" ? (
+              <div className="h-full w-full">
+                <MapView
+                  vehicleStatus={vehicleStatus}
+                  selectedVin={activeVehicleVin}
+                  hasVehicles={vehicles.length > 0}
+                  isLoading={isLoadingVehicleStatus}
+                  showHeader={false}
+                  initialZoom={15}
+                  minZoom={12}
+                />
+              </div>
+            ) : (
+              <div className="h-full w-full flex flex-col min-h-0">
+                <VehicleStatus
+                  vehicleStatus={vehicleStatus}
+                  selectedVin={activeVehicleVin}
+                  hasVehicles={vehicles.length > 0}
+                  isLoading={isLoadingVehicleStatus}
+                  error={vehicleStatusError}
+                  isExpanded={true}
+                  hideHeader
+                />
+              </div>
+            )}
+          </div>
+        </Card>
       </div>
     </div>
   );

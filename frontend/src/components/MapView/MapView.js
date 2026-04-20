@@ -3,7 +3,6 @@
 import { useMemo, useEffect, useRef } from "react";
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import { Subtitle } from "@leafygreen-ui/typography";
-import Badge from "@leafygreen-ui/badge";
 import ExpandableSection from "@/components/ExpandableSection/ExpandableSection";
 import L from "leaflet";
 
@@ -18,11 +17,11 @@ L.Icon.Default.mergeOptions({
 });
 
 // Create a rotating arrow icon for navigation mode using arrow.png
-const createNavigationArrow = (heading = 0) => {
+const createNavigationArrow = (heading = 0, size = 48) => {
   const arrowHtml = `
     <div style="
-      width: 48px;
-      height: 48px;
+      width: ${size}px;
+      height: ${size}px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -31,8 +30,8 @@ const createNavigationArrow = (heading = 0) => {
       <img 
         src="/arrow.png" 
         style="
-          width: 48px;
-          height: 48px;
+          width: ${size}px;
+          height: ${size}px;
           filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
         " 
         alt="Vehicle direction"
@@ -42,9 +41,9 @@ const createNavigationArrow = (heading = 0) => {
 
   return L.divIcon({
     html: arrowHtml,
-    iconSize: [48, 48],
-    iconAnchor: [24, 24],
-    popupAnchor: [0, -24],
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+    popupAnchor: [0, -size / 2],
     className: "navigation-arrow-marker smooth-marker-transition",
   });
 };
@@ -166,6 +165,12 @@ export default function MapView({
   isLoading,
   isExpanded = true,
   onToggleExpand,
+  showHeader = true,
+  initialZoom = 16,
+  minZoom = 14,
+  maxZoom = 18,
+  arrowSize = 48,
+  markerStyle = "arrow",
 }) {
   const markerRef = useRef(null);
 
@@ -192,10 +197,15 @@ export default function MapView({
     return null;
   }, [vehicleStatus]);
 
-  // Create navigation arrow icon once (rotation will be updated via DOM)
+  const usePin = markerStyle === "pin";
+
+  // Create navigation arrow icon once (rotation will be updated via DOM).
+  // Skipped entirely when in "pin" mode — we fall back to the default
+  // Leaflet marker which already renders a static pin.
   const navigationIcon = useMemo(() => {
-    return createNavigationArrow(0); // Start at 0, will be updated by MarkerRotation
-  }, []); // Only create once
+    if (usePin) return null;
+    return createNavigationArrow(0, arrowSize);
+  }, [arrowSize, usePin]);
 
   // Define bounds for the expected area (~10 sqkm around the vehicle)
   // This helps preload tiles in the area
@@ -210,93 +220,100 @@ export default function MapView({
     ];
   }, [location]);
 
+  const mapContent = (
+    <div
+      className={`min-h-0 overflow-hidden map-view-stack ${
+        showHeader ? "flex-1 mt-4" : "h-full w-full"
+      }`}
+    >
+      {!selectedVin ? (
+        <div className="flex items-center justify-center h-full">
+          <Subtitle>
+            {hasVehicles
+              ? "Select a vehicle to view its location"
+              : "No vehicles connected"}
+          </Subtitle>
+        </div>
+      ) : isLoading && !location ? (
+        <div className="flex items-center justify-center h-full">
+          <Subtitle>Loading location data...</Subtitle>
+        </div>
+      ) : !location ? (
+        <div className="flex items-center justify-center h-full">
+          <Subtitle>No location data available for {selectedVin}</Subtitle>
+        </div>
+      ) : (
+        <div className="h-full w-full rounded-lg overflow-hidden relative">
+          <MapContainer
+            center={[location.lat, location.lng]}
+            zoom={initialZoom}
+            minZoom={minZoom}
+            maxZoom={maxZoom}
+            maxBounds={mapBounds}
+            maxBoundsViscosity={0.5}
+            style={{ height: "100%", width: "100%" }}
+            scrollWheelZoom={true}
+            zoomControl={true}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+              url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+              subdomains="abcd"
+              keepBuffer={8}
+              minZoom={minZoom}
+              maxZoom={maxZoom}
+            />
+
+            <MapUpdater
+              location={location}
+              isExpanded={isExpanded}
+              enableMapRotation={false}
+            />
+
+            {!usePin ? (
+              <MarkerRotation location={location} markerRef={markerRef} />
+            ) : null}
+
+            <Marker
+              ref={markerRef}
+              position={[location.lat, location.lng]}
+              {...(usePin ? {} : { icon: navigationIcon })}
+            >
+              <Popup>
+                <div>
+                  <strong>Vehicle Location</strong>
+                  <br />
+                  Lat: {location.lat.toFixed(6)}
+                  <br />
+                  Lng: {location.lng.toFixed(6)}
+                  {!usePin ? (
+                    <>
+                      <br />
+                      Heading: {location.heading.toFixed(1)}°
+                    </>
+                  ) : null}
+                  <br />
+                  Speed: {vehicleStatus?.Vehicle?.Speed?.toFixed(1) || 0} km/h
+                </div>
+              </Popup>
+            </Marker>
+          </MapContainer>
+        </div>
+      )}
+    </div>
+  );
+
+  if (!showHeader) {
+    return mapContent;
+  }
+
   return (
     <ExpandableSection
       title="Map View"
       isExpanded={isExpanded}
       onToggleExpand={onToggleExpand}
     >
-      <div className="flex-1 min-h-0 overflow-hidden mt-4">
-        {!selectedVin ? (
-          <div className="flex items-center justify-center h-full">
-            <Subtitle>
-              {hasVehicles
-                ? "Select a vehicle to view its location"
-                : "No vehicles connected"}
-            </Subtitle>
-          </div>
-        ) : isLoading && !location ? (
-          <div className="flex items-center justify-center h-full">
-            <Subtitle>Loading location data...</Subtitle>
-          </div>
-        ) : !location ? (
-          <div className="flex items-center justify-center h-full">
-            <Subtitle>No location data available for {selectedVin}</Subtitle>
-          </div>
-        ) : (
-          <div className="h-full w-full rounded-lg overflow-hidden relative">
-            {/* Speed Badge Overlay */}
-            {/* <div className="absolute top-4 right-4 z-[1000] speed-badge-overlay rounded-lg">
-              <Badge variant="blue">
-                {Math.round(vehicleStatus?.Vehicle?.Speed || 0)} km/h
-              </Badge>
-            </div> */}
-
-            {/* Removed key prop - map stays mounted, only marker and view update */}
-            <MapContainer
-              center={[location.lat, location.lng]}
-              zoom={16}
-              minZoom={14}
-              maxZoom={18}
-              maxBounds={mapBounds}
-              maxBoundsViscosity={0.5}
-              style={{ height: "100%", width: "100%" }}
-              scrollWheelZoom={true}
-              zoomControl={true}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                subdomains="abcd"
-                keepBuffer={8}
-                minZoom={14}
-                maxZoom={18}
-              />
-
-              {/* Component that smoothly updates map position and handles resize */}
-              {/* Set enableMapRotation={true} to enable GPS-style navigation mode where the map rotates with the vehicle */}
-              <MapUpdater
-                location={location}
-                isExpanded={isExpanded}
-                enableMapRotation={false}
-              />
-
-              {/* Component that smoothly updates marker rotation */}
-              <MarkerRotation location={location} markerRef={markerRef} />
-
-              <Marker
-                ref={markerRef}
-                position={[location.lat, location.lng]}
-                icon={navigationIcon}
-              >
-                <Popup>
-                  <div>
-                    <strong>Vehicle Location</strong>
-                    <br />
-                    Lat: {location.lat.toFixed(6)}
-                    <br />
-                    Lng: {location.lng.toFixed(6)}
-                    <br />
-                    Heading: {location.heading.toFixed(1)}°
-                    <br />
-                    Speed: {vehicleStatus?.Vehicle?.Speed?.toFixed(1) || 0} km/h
-                  </div>
-                </Popup>
-              </Marker>
-            </MapContainer>
-          </div>
-        )}
-      </div>
+      {mapContent}
     </ExpandableSection>
   );
 }

@@ -9,9 +9,6 @@ import IconButton from "@leafygreen-ui/icon-button";
 import Modal from "@leafygreen-ui/modal";
 import { Body, H1, H2, H3, Subtitle } from "@leafygreen-ui/typography";
 import { palette } from "@leafygreen-ui/palette";
-import { useFleetData } from "@/lib/context/FleetDataContext";
-import { useAlerts } from "@/lib/context/AlertsContext";
-import { useGlobalConnection } from "@/lib/context/GlobalConnectionContext";
 import { useBrand } from "@/lib/context/BrandContext";
 
 const FEATURES = [
@@ -64,25 +61,9 @@ const STORYLINE = [
   },
 ];
 
-function MetricTile({ label, value, hint }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.06] px-4 py-3 backdrop-blur-sm">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-gray-400">
-        {label}
-      </div>
-      <div className="mt-1 text-2xl font-semibold leading-none text-white">
-        {value}
-      </div>
-      {hint ? (
-        <div className="mt-1 text-xs text-gray-400">{hint}</div>
-      ) : null}
-    </div>
-  );
-}
-
 function WalkDemoModal({ open, setOpen }) {
   return (
-    <Modal open={open} setOpen={setOpen} size="large">
+    <Modal open={open} setOpen={setOpen} size="large" className="!z-[100]">
       <div className="space-y-5">
         <div>
           <H2>Walk the demo</H2>
@@ -146,7 +127,7 @@ function WalkDemoModal({ open, setOpen }) {
 
 function ArchitectureModal({ open, setOpen }) {
   return (
-    <Modal open={open} setOpen={setOpen} size="large">
+    <Modal open={open} setOpen={setOpen} size="large" className="!z-[100]">
       <div className="space-y-3">
         <H2>Architecture</H2>
         <Body className="text-gray-600">
@@ -172,35 +153,27 @@ function ArchitectureModal({ open, setOpen }) {
 }
 
 export default function HomeOverview() {
-  const { vehicles, statuses, isLoadingVehicles } = useFleetData();
-  const { pendingAlerts, sentAlerts } = useAlerts();
-  const { status: connectionStatus } = useGlobalConnection();
   const { title } = useBrand();
   const [walkOpen, setWalkOpen] = useState(false);
   const [archOpen, setArchOpen] = useState(false);
 
-  const onlineCount = vehicles.filter(
-    (vehicle) => statuses[vehicle.vin],
-  ).length;
-
   return (
-    <div className="flex flex-col gap-6">
-      <section className="grid items-stretch gap-8 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0c1c2c] via-[#0a2540] to-[#0c1c2c] p-8 text-white shadow-xl md:grid-cols-2 md:p-10">
-        <div className="flex flex-col">
-          <H1 className="!text-white !text-4xl md:!text-5xl !leading-tight">
+    <div className="flex flex-col h-full min-h-0 gap-4 py-6">
+      <section className="grid flex-1 items-stretch gap-6 overflow-hidden rounded-2xl bg-gradient-to-br from-[#0c1c2c] via-[#0a2540] to-[#0c1c2c] px-6 py-6 text-white shadow-xl min-h-0 md:grid-cols-5 md:px-10 md:py-8">
+        <div className="flex flex-col justify-center md:col-span-2">
+          <H1 className="!text-white !text-3xl md:!text-4xl !leading-tight !font-semibold">
             {title}
           </H1>
-          <Body className="mt-4 max-w-xl !text-base !leading-relaxed !text-gray-300">
+          <Body className="mt-4 max-w-xl !text-sm md:!text-base !leading-relaxed !text-gray-300">
             A guided tour of how the VISS standard, MQTT, and MongoDB work
             together to monitor a small fleet of trucks, detect tire incidents,
             and push warnings back to the driver in real time.
           </Body>
 
-          <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="mt-6 flex flex-wrap items-center gap-3">
             <Link href="/fleet">
               <Button
                 variant="primary"
-                size="large"
                 rightGlyph={<Icon glyph="ArrowRight" />}
               >
                 Start demo
@@ -215,45 +188,20 @@ export default function HomeOverview() {
               <Icon glyph="QuestionMarkWithCircle" />
             </IconButton>
           </div>
-
-          <div className="mt-auto grid grid-cols-2 gap-3 pt-8 md:grid-cols-4">
-            <MetricTile
-              label="Vehicles"
-              value={isLoadingVehicles ? "…" : vehicles.length || 0}
-              hint={`${onlineCount} reporting`}
-            />
-            <MetricTile
-              label="Pending alerts"
-              value={pendingAlerts.length}
-              hint="awaiting dispatch"
-            />
-            <MetricTile
-              label="In-flight"
-              value={sentAlerts.length}
-              hint="sent to driver"
-            />
-            <MetricTile
-              label="MQTT"
-              value={
-                connectionStatus === "connected" ? "Live" : connectionStatus
-              }
-              hint="global command bus"
-            />
-          </div>
         </div>
 
-        <Card className="flex items-center overflow-hidden bg-white p-4">
+        <Card className="flex min-h-0 items-center justify-center overflow-hidden bg-white p-3 md:col-span-3">
           <button
             type="button"
             onClick={() => setArchOpen(true)}
-            className="group relative block w-full cursor-zoom-in overflow-hidden rounded-md"
+            className="group relative flex h-full w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-md"
             aria-label="Open architecture diagram in full view"
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/architecture.svg"
               alt="Architecture diagram showing VISSR vehicles publishing telemetry over MQTT into MongoDB and being consumed by the demo app"
-              className="block h-auto w-full object-contain"
+              className="block max-h-full max-w-full object-contain"
               style={{ imageRendering: "auto" }}
             />
             <span className="pointer-events-none absolute right-2 top-2 flex items-center gap-1 rounded-full bg-white/90 px-2 py-1 text-xs font-medium text-gray-700 opacity-0 shadow transition group-hover:opacity-100">
@@ -264,11 +212,14 @@ export default function HomeOverview() {
         </Card>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <section className="grid flex-shrink-0 items-stretch gap-4 md:grid-cols-2 lg:grid-cols-4">
         {FEATURES.map((feature) => (
-          <Card key={feature.title} className="h-full p-5">
+          <Card
+            key={feature.title}
+            className="group flex h-full flex-col p-4 transition hover:shadow-md"
+          >
             <span
-              className="flex h-11 w-11 items-center justify-center rounded-lg"
+              className="flex h-9 w-9 items-center justify-center rounded-lg transition group-hover:scale-105"
               style={{ backgroundColor: palette.green.light3 }}
             >
               <Icon
@@ -277,8 +228,10 @@ export default function HomeOverview() {
                 size="large"
               />
             </span>
-            <H3 className="mt-4 !text-base">{feature.title}</H3>
-            <Body className="mt-2 text-sm leading-relaxed text-gray-600">
+            <H3 className="mt-2.5 !text-base !font-semibold !leading-snug">
+              {feature.title}
+            </H3>
+            <Body className="mt-1.5 !text-sm !leading-relaxed text-gray-600">
               {feature.body}
             </Body>
           </Card>

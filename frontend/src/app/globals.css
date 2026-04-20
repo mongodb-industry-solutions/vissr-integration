@@ -22,3 +22,40 @@
   backdrop-filter: blur(4px);
 }
 
+/*
+ * Contain Leaflet's internal z-index stack so its panes (z-index: 400-700)
+ * and controls (z-index: 1000) do not escape over the app header (z-40),
+ * logs footer (z-40) or other overlays. Establishes a new stacking context
+ * via `isolation: isolate` scoped to the map wrapper.
+ */
+.map-view-stack {
+  isolation: isolate;
+  position: relative;
+  z-index: 0;
+}
+
+/*
+ * Full-viewport main layout for interactive pages (sandbox, fleet, driver).
+ * Constrains the workspace to the remaining viewport height (minus the
+ * sticky 64px header) so children can opt into internal scrolling with
+ * min-h-0 rather than stretching the whole page.
+ */
+.app-main--full {
+  height: calc(100vh - 64px);
+  max-height: calc(100vh - 64px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * Subtle inset shadow used by the infotainment "screen" bezel on the
+ * driver page so the map reads as an embedded head-unit display.
+ */
+.infotainment-bezel {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    inset 0 2px 8px rgba(0, 0, 0, 0.6),
+    0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
