@@ -6,6 +6,7 @@ import { VissLogProvider } from "@/lib/context/VissLogContext";
 import { GlobalConnectionProvider } from "@/lib/context/GlobalConnectionContext";
 import { FleetDataProvider } from "@/lib/context/FleetDataContext";
 import { AlertsProvider } from "@/lib/context/AlertsContext";
+import GlobalSubscriptionsBridge from "@/lib/context/GlobalSubscriptionsBridge";
 import AppShell from "@/components/AppShell/AppShell";
 
 export function Providers({ brand, children }) {
@@ -15,6 +16,7 @@ export function Providers({ brand, children }) {
         <VissLogProvider>
           <GlobalConnectionProvider>
             <FleetDataProvider>
+              <GlobalSubscriptionsBridge />
               <AlertsProvider>
                 <AppShell>{children}</AppShell>
               </AlertsProvider>

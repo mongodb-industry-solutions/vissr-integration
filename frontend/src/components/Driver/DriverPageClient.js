@@ -122,7 +122,7 @@ function oilTone(value) {
 /* ---------------------------------------------------------------- Page ---- */
 
 export default function DriverPageClient() {
-  const { vehicles, statuses, isLoadingVehicles } = useFleetData();
+  const { vehicles, statuses, isLoadingVehicles, getWheels } = useFleetData();
   const [selectedVin, setSelectedVin] = useState(null);
   const [now, setNow] = useState(() => Date.now());
 
@@ -159,13 +159,18 @@ export default function DriverPageClient() {
 
   const readings = useMemo(() => {
     if (!vehicle) return [];
+    // Use the same per-vehicle wheel layout the Fleet TireModal uses so
+    // the driver dashboard reads from the live VSS pressure/temperature
+    // paths for THIS truck. The demo layout is only a fallback for the
+    // brief window before the VSS schema for the vehicle has loaded.
+    const wheels = getWheels(vehicle.vin) || buildDemoWheelLayout();
     return buildWheelReadings({
       vin: vehicle.vin,
-      wheels: buildDemoWheelLayout(),
+      wheels,
       vehicleStatus: status,
       now,
     });
-  }, [vehicle, status, now]);
+  }, [vehicle, status, now, getWheels]);
 
   const heading = status?.Vehicle?.CurrentLocation?.Heading;
 

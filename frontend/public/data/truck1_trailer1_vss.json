@@ -1,21 +1,12 @@
 {
   "Vehicle": {
     "type": "branch",
-    "description": "Truck 1 test signals.",
     "children": {
-      "Speed": {
-        "type": "sensor",
-        "datatype": "float",
-        "description": "Vehicle speed.",
-        "unit": "km/h"
-      },
       "Chassis": {
         "type": "branch",
-        "description": "Truck chassis signals.",
         "children": {
           "Accelerator": {
             "type": "branch",
-            "description": "Accelerator signals.",
             "children": {
               "PedalPosition": {
                 "type": "sensor",
@@ -27,7 +18,6 @@
           },
           "Brake": {
             "type": "branch",
-            "description": "Brake signals.",
             "children": {
               "PedalPosition": {
                 "type": "sensor",
@@ -39,7 +29,6 @@
           },
           "SteeringWheel": {
             "type": "branch",
-            "description": "Steering wheel signals.",
             "children": {
               "Angle": {
                 "type": "sensor",
@@ -51,41 +40,898 @@
           },
           "Axle": {
             "type": "branch",
-            "description": "Axle and wheel test signals.",
             "children": {
               "Axle1": {
                 "type": "branch",
-                "description": "Front axle test signals.",
                 "children": {
                   "Wheel": {
                     "type": "branch",
-                    "description": "Wheel test signals.",
                     "children": {
-                      "Pos10": {
+                      "Pos6": {
                         "type": "branch",
-                        "description": "Sample truck wheel.",
                         "children": {
-                          "Brake": {
-                            "type": "branch",
-                            "description": "Brake test signals.",
-                            "children": {
-                              "Temperature": {
-                                "type": "sensor",
-                                "datatype": "uint16",
-                                "description": "Brake temperature.",
-                                "unit": "celsius"
-                              }
-                            }
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
                           },
                           "Tire": {
                             "type": "branch",
-                            "description": "Tire test signals.",
                             "children": {
                               "Pressure": {
                                 "type": "sensor",
                                 "datatype": "uint16",
                                 "description": "Tire pressure.",
                                 "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos10": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "Axle2": {
+                "type": "branch",
+                "children": {
+                  "Wheel": {
+                    "type": "branch",
+                    "children": {
+                      "Pos5": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos6": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos10": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos11": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "Axle3": {
+                "type": "branch",
+                "children": {
+                  "Wheel": {
+                    "type": "branch",
+                    "children": {
+                      "Pos5": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos6": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos10": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos11": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
                               }
                             }
                           }
@@ -99,9 +945,104 @@
           }
         }
       },
+      "MotionManagement": {
+        "type": "branch",
+        "children": {
+          "Steering": {
+            "type": "branch",
+            "children": {
+              "SteeringWheel": {
+                "type": "branch",
+                "children": {
+                  "Torque": {
+                    "type": "sensor",
+                    "datatype": "int16",
+                    "description": "Steering wheel torque.",
+                    "unit": "Nm"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Body": {
+        "type": "branch",
+        "children": {
+          "Lights": {
+            "type": "branch",
+            "children": {
+              "DirectionIndicator": {
+                "type": "branch",
+                "children": {
+                  "Left": {
+                    "type": "branch",
+                    "children": {
+                      "IsSignaling": {
+                        "type": "sensor",
+                        "datatype": "boolean",
+                        "description": "Left direction indicator signalling."
+                      }
+                    }
+                  },
+                  "Right": {
+                    "type": "branch",
+                    "children": {
+                      "IsSignaling": {
+                        "type": "sensor",
+                        "datatype": "boolean",
+                        "description": "Right direction indicator signalling."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "Speed": {
+        "type": "sensor",
+        "datatype": "float",
+        "description": "Vehicle speed.",
+        "unit": "km/h"
+      },
+      "Acceleration": {
+        "type": "branch",
+        "children": {
+          "Longitudinal": {
+            "type": "sensor",
+            "datatype": "float",
+            "description": "Longitudinal acceleration.",
+            "unit": "m/s^2"
+          },
+          "Lateral": {
+            "type": "sensor",
+            "datatype": "float",
+            "description": "Lateral acceleration.",
+            "unit": "m/s^2"
+          }
+        }
+      },
+      "AngularVelocity": {
+        "type": "branch",
+        "children": {
+          "Roll": {
+            "type": "sensor",
+            "datatype": "float",
+            "description": "Roll angular velocity.",
+            "unit": "degrees/s"
+          },
+          "Pitch": {
+            "type": "sensor",
+            "datatype": "float",
+            "description": "Pitch angular velocity.",
+            "unit": "degrees/s"
+          }
+        }
+      },
       "CurrentLocation": {
         "type": "branch",
-        "description": "Current location signals.",
         "children": {
           "Latitude": {
             "type": "sensor",
@@ -115,6 +1056,12 @@
             "description": "Current longitude.",
             "unit": "degrees"
           },
+          "Altitude": {
+            "type": "sensor",
+            "datatype": "double",
+            "description": "Current altitude.",
+            "unit": "m"
+          },
           "Heading": {
             "type": "sensor",
             "datatype": "double",
@@ -123,97 +1070,766 @@
           }
         }
       },
-      "Trailer": {
+      "VehicleIdentification": {
         "type": "branch",
-        "description": "Truck trailer linkage signals.",
         "children": {
-          "IsConnected": {
-            "type": "sensor",
-            "datatype": "boolean",
-            "description": "True when a trailer is connected."
+          "VIN": {
+            "type": "attribute",
+            "datatype": "string"
           }
         }
       },
-      "VehicleIdentification": {
+      "Trailer": {
         "type": "branch",
-        "description": "Truck identification.",
         "children": {
-          "VIN": {
-            "type": "attribute",
-            "datatype": "string",
-            "description": "Truck VIN."
+          "IsConnected": {
+            "type": "sensor",
+            "datatype": "boolean"
           }
         }
       }
-    }
+    },
+    "description": "Truck 1 signals."
   },
   "Trailer": {
     "type": "branch",
-    "description": "Trailer 1 test signals.",
     "children": {
       "TrailerIdentification": {
         "type": "branch",
-        "description": "Trailer identification.",
         "children": {
           "VIN": {
             "type": "attribute",
-            "datatype": "string",
-            "description": "Trailer VIN."
+            "datatype": "string"
           }
         }
       },
       "TrailerType": {
         "type": "attribute",
-        "datatype": "string",
-        "description": "Trailer type."
+        "datatype": "string"
       },
       "Chassis": {
         "type": "branch",
-        "description": "Trailer chassis signals.",
         "children": {
           "Axle": {
             "type": "branch",
-            "description": "Trailer axle signals.",
             "children": {
               "Axle1": {
                 "type": "branch",
-                "description": "Trailer axle 1.",
                 "children": {
                   "Wheel": {
                     "type": "branch",
-                    "description": "Trailer wheel signals.",
                     "children": {
-                      "Pos13": {
+                      "Pos3": {
                         "type": "branch",
-                        "description": "Sample trailer wheel.",
                         "children": {
                           "Speed": {
                             "type": "sensor",
                             "datatype": "float",
-                            "description": "Trailer wheel speed.",
+                            "description": "Wheel speed.",
                             "unit": "km/h"
                           },
-                          "Brake": {
-                            "type": "branch",
-                            "description": "Trailer brake signals.",
-                            "children": {
-                              "Temperature": {
-                                "type": "sensor",
-                                "datatype": "uint16",
-                                "description": "Trailer brake temperature.",
-                                "unit": "celsius"
-                              }
-                            }
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
                           },
                           "Tire": {
                             "type": "branch",
-                            "description": "Trailer tire signals.",
                             "children": {
                               "Pressure": {
                                 "type": "sensor",
                                 "datatype": "uint16",
-                                "description": "Trailer tire pressure.",
+                                "description": "Tire pressure.",
                                 "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos13": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "Axle10": {
+                "type": "branch",
+                "children": {
+                  "Wheel": {
+                    "type": "branch",
+                    "children": {
+                      "Pos3": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos13": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              "Axle12": {
+                "type": "branch",
+                "children": {
+                  "Wheel": {
+                    "type": "branch",
+                    "children": {
+                      "Pos3": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos4": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos12": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
+                              }
+                            }
+                          }
+                        }
+                      },
+                      "Pos13": {
+                        "type": "branch",
+                        "children": {
+                          "Speed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel speed.",
+                            "unit": "km/h"
+                          },
+                          "AngularSpeed": {
+                            "type": "sensor",
+                            "datatype": "float",
+                            "description": "Wheel angular speed.",
+                            "unit": "degrees/s"
+                          },
+                          "Tire": {
+                            "type": "branch",
+                            "children": {
+                              "Pressure": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Tire pressure.",
+                                "unit": "kPa"
+                              },
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "float",
+                                "description": "Tire temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsPressureLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire pressure is below the warning threshold."
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when tire temperature is above the warning threshold."
+                              },
+                              "IsPowerSufficient": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when the tire monitoring module has sufficient power."
+                              }
+                            }
+                          },
+                          "Brake": {
+                            "type": "branch",
+                            "children": {
+                              "Temperature": {
+                                "type": "sensor",
+                                "datatype": "uint16",
+                                "description": "Brake temperature.",
+                                "unit": "celsius"
+                              },
+                              "IsTemperatureHigh": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake temperature is above the warning threshold."
+                              },
+                              "FluidLevel": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake fluid level (percent).",
+                                "unit": "percent"
+                              },
+                              "IsFluidLevelLow": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake fluid level is low."
+                              },
+                              "PadWear": {
+                                "type": "sensor",
+                                "datatype": "uint8",
+                                "description": "Brake pad wear (percent).",
+                                "unit": "percent"
+                              },
+                              "IsBrakesWorn": {
+                                "type": "sensor",
+                                "datatype": "boolean",
+                                "description": "True when brake pads are worn."
                               }
                             }
                           }
@@ -227,6 +1843,7 @@
           }
         }
       }
-    }
+    },
+    "description": "Trailer 1 signals."
   }
 }

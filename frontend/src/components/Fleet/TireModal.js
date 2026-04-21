@@ -6,6 +6,7 @@ import IconButton from "@leafygreen-ui/icon-button";
 import Icon from "@leafygreen-ui/icon";
 import { palette } from "@leafygreen-ui/palette";
 import { H3, Subtitle } from "@leafygreen-ui/typography";
+import { useFleetData } from "@/lib/context/FleetDataContext";
 import { buildDemoWheelLayout } from "@/lib/vss/wheelPositions";
 import { buildWheelReadings, tireStatus } from "@/lib/mock/tirePadding";
 import TireDiagram from "./TireDiagram";
@@ -29,16 +30,86 @@ function ReadingsSummary({ readings }) {
   );
 }
 
+function trailerTypeLabel(trailerType) {
+  if (trailerType === "FULL_TRAILER") return "Full trailer";
+  if (trailerType === "SEMI_TRAILER") return "Semi-trailer";
+  return trailerType || "Trailer";
+}
+
+function deriveTrailerType(status, readings) {
+  const live = status?.Trailer?.TrailerType;
+  if (typeof live === "string" && live.trim()) return live;
+  // Fall back to layout-based inference: full trailers are the only
+  // configuration with a front (Axle1) wheel pair on the trailer.
+  const hasFrontTrailerAxle = readings.some(
+    (entry) => entry.wheel.root === "Trailer" && entry.wheel.axleNumber === 1,
+  );
+  return hasFrontTrailerAxle ? "FULL_TRAILER" : "SEMI_TRAILER";
+}
+
+const ROLE_RANK = { steer: 0, drive: 1, trailer: 2 };
+
+function sortReadings(readings) {
+  const sideRank = (entry) => {
+    // outerLeft, innerLeft, innerRight, outerRight — same paint order
+    // the diagram uses so the eye moves between rig and list naturally.
+    const isLeft = entry.wheel.side === "left";
+    const pair = entry.wheel.pairIndex ?? 0;
+    if (isLeft) return pair === 1 ? 0 : 1;
+    return pair === 1 ? 3 : 2;
+  };
+  return readings.slice().sort((a, b) => {
+    const roleA = ROLE_RANK[a.wheel.axleRole] ?? 9;
+    const roleB = ROLE_RANK[b.wheel.axleRole] ?? 9;
+    if (roleA !== roleB) return roleA - roleB;
+    const orderA = a.wheel.axleOrder ?? a.wheel.axleNumber;
+    const orderB = b.wheel.axleOrder ?? b.wheel.axleNumber;
+    if (orderA !== orderB) return orderA - orderB;
+    return sideRank(a) - sideRank(b);
+  });
+}
+
+function rowAxleLabel(wheel) {
+  // The diagram says "Trailer Axle 1" already, so in the per-wheel list
+  // we drop the "Trailer " prefix to avoid the redundant
+  // "Trailer · Trailer Axle 1" reading.
+  if (wheel.root === "Trailer" && wheel.axleLabel?.startsWith("Trailer ")) {
+    return wheel.axleLabel.slice("Trailer ".length);
+  }
+  return wheel.axleLabel || wheel.axleSegment;
+}
+
+function SourceDot({ source }) {
+  const isLive = source === "live" || source === "mixed";
+  const color = isLive ? palette.green.base : palette.gray.light1;
+  const title = isLive ? "Live signal" : "Synthetic fallback";
+  return (
+    <span
+      title={title}
+      className="inline-block h-1.5 w-1.5 rounded-full"
+      style={{ backgroundColor: color }}
+    />
+  );
+}
+
 export default function TireModal({ open, setOpen, vehicle, status }) {
+  const { getWheels } = useFleetData();
   const readings = useMemo(() => {
     if (!vehicle) return [];
+    const wheels = getWheels(vehicle.vin) || buildDemoWheelLayout();
     return buildWheelReadings({
       vin: vehicle.vin,
-      wheels: buildDemoWheelLayout(),
+      wheels,
       vehicleStatus: status,
       now: Date.now(),
     });
-  }, [vehicle, status]);
+  }, [vehicle, status, getWheels]);
+
+  const sortedReadings = useMemo(() => sortReadings(readings), [readings]);
+  const trailerType = useMemo(
+    () => deriveTrailerType(status, readings),
+    [status, readings],
+  );
 
   // Close on Escape and lock body scroll while the overlay is mounted so
   // the underlying page doesn't scroll behind the full-screen modal.
@@ -84,7 +155,10 @@ export default function TireModal({ open, setOpen, vehicle, status }) {
               </H3>
               <code className="text-xs text-gray-500">{vehicle.vin}</code>
             </div>
-            <ReadingsSummary readings={readings} />
+            <div className="flex flex-wrap items-center gap-2">
+              <ReadingsSummary readings={readings} />
+              <Badge variant="blue">{trailerTypeLabel(trailerType)}</Badge>
+            </div>
           </div>
           <IconButton
             aria-label="Close tire status"
@@ -100,7 +174,11 @@ export default function TireModal({ open, setOpen, vehicle, status }) {
               Rig overview
             </Subtitle>
             <div className="mt-2 flex-1 min-h-0">
-              <TireDiagram readings={readings} variant="fit" />
+              <TireDiagram
+                readings={readings}
+                variant="fit"
+                trailerType={trailerType}
+              />
             </div>
           </section>
 
@@ -112,19 +190,36 @@ export default function TireModal({ open, setOpen, vehicle, status }) {
               </span>
             </div>
             <div className="mt-2 flex-1 min-h-0 overflow-y-auto pr-1 space-y-1">
-              {readings.map((entry) => {
+              {sortedReadings.map((entry) => {
                 const entryStatus = tireStatus(entry);
+                const sideLabel = entry.wheel.sideLabel;
+                const rootLabel =
+                  entry.wheel.root === "Trailer" ? "Trailer" : "Truck";
                 return (
                   <div
                     key={entry.wheel.id}
                     className="flex items-center justify-between rounded border border-gray-100 bg-white px-3 py-2"
                   >
                     <div className="min-w-0">
-                      <div className="text-xs font-mono text-gray-600 truncate">
-                        {entry.wheel.label}
+                      <div className="text-xs font-medium text-gray-700 truncate">
+                        {rootLabel}{" "}
+                        ·{" "}
+                        <span className="text-gray-900">
+                          {rowAxleLabel(entry.wheel)}
+                        </span>
+                        {sideLabel ? (
+                          <>
+                            {" "}
+                            ·{" "}
+                            <span className="text-gray-900">{sideLabel}</span>
+                          </>
+                        ) : null}
                       </div>
-                      <div className="text-[11px] text-gray-400">
-                        {entry.source === "live" ? "live" : "synthetic"}
+                      <div className="flex items-center gap-2 text-[11px] text-gray-400">
+                        <SourceDot source={entry.source} />
+                        <span className="font-mono">
+                          {entry.wheel.axleSegment} · {entry.wheel.positionSegment}
+                        </span>
                       </div>
                     </div>
                     <div className="text-right">

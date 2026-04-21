@@ -42,20 +42,22 @@ function KpiTile({ icon, label, value, hint, accent = palette.gray.dark2 }) {
 }
 
 export default function FleetKpiStrip() {
-  const { vehicles, statuses } = useFleetData();
+  const { vehicles, statuses, wheelsByVin } = useFleetData();
   const { pendingAlerts, sentAlerts } = useAlerts();
 
   const aggregates = useMemo(() => {
-    const layout = buildDemoWheelLayout();
+    const fallbackLayout = buildDemoWheelLayout();
     const now = Date.now();
-    const allReadings = vehicles.flatMap((vehicle) =>
-      buildWheelReadings({
+    const allReadings = vehicles.flatMap((vehicle) => {
+      const wheels =
+        (wheelsByVin && wheelsByVin[vehicle.vin]) || fallbackLayout;
+      return buildWheelReadings({
         vin: vehicle.vin,
-        wheels: layout,
+        wheels,
         vehicleStatus: statuses[vehicle.vin],
         now,
-      }),
-    );
+      });
+    });
 
     return {
       pressures: allReadings.map((entry) => entry.pressure).filter(Number.isFinite),
@@ -63,7 +65,7 @@ export default function FleetKpiStrip() {
         .map((entry) => entry.temperature)
         .filter(Number.isFinite),
     };
-  }, [vehicles, statuses]);
+  }, [vehicles, statuses, wheelsByVin]);
 
   const onlineCount = vehicles.filter((vehicle) => statuses[vehicle.vin]).length;
   const avgPressure = average(aggregates.pressures);

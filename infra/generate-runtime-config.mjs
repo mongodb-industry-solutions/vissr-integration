@@ -136,7 +136,33 @@ function stripInternalIndexFields(indexDefinition) {
   return publicIndexDefinition;
 }
 
-function buildMongoBootstrapConfig(repoRoot) {
+function buildVehicleStatusSeedDocuments(activeVehicles) {
+  // Seed one canonical vehicle_status document per configured VIN so the
+  // demo always boots into a known good shape: the doc exists before any
+  // subscribe ack arrives, the trailer identity attributes are bound to
+  // the right truck, and the unique index has nothing to race against on
+  // the first telemetry write. The matching key is the same VIN filter
+  // the bridge uses, so live updates merge into the seed instead of
+  // creating a parallel doc.
+  return activeVehicles.map((vehicle) => {
+    const set = {
+      "Vehicle.VehicleIdentification.VIN": vehicle.vin,
+    };
+    if (vehicle.trailerVin) {
+      set["Trailer.TrailerIdentification.VIN"] = vehicle.trailerVin;
+      set["Vehicle.Trailer.IsConnected"] = true;
+    }
+    if (vehicle.trailerType) {
+      set["Trailer.TrailerType"] = vehicle.trailerType;
+    }
+    return {
+      filter: { "Vehicle.VehicleIdentification.VIN": vehicle.vin },
+      set,
+    };
+  });
+}
+
+function buildMongoBootstrapConfig(repoRoot, activeVehicles) {
   const metadataRoot = path.join(
     repoRoot,
     "infra",
@@ -151,6 +177,10 @@ function buildMongoBootstrapConfig(repoRoot) {
     readJsonFile(path.join(metadataRoot, "messages.metadata.json")),
   );
 
+  const activeVins = activeVehicles
+    .map((vehicle) => vehicle.vin)
+    .filter((vin) => typeof vin === "string" && vin !== "");
+
   return {
     collections: [
       {
@@ -160,8 +190,19 @@ function buildMongoBootstrapConfig(repoRoot) {
           {
             key: { "Vehicle.VehicleIdentification.VIN": 1 },
             name: "vehicle_vin_1",
+            // See infra/mongodb/init/bootstrap.js for the full rationale.
+            // tl;dr: without `unique`, two near-simultaneous subscribe acks
+            // can both upsert and create duplicate docs that then split
+            // subsequent writes (the truck1/truck2 trailer-swap bug).
+            unique: true,
           },
         ],
+        seedDocuments: buildVehicleStatusSeedDocuments(activeVehicles),
+        // Drop any vehicle_status doc whose VIN is NOT in the configured
+        // set. Prevents ghosts from earlier demo runs (e.g. a stale
+        // single-vehicle VIN from PROFILE=zod) from being routed into
+        // the UI as if they were live trucks.
+        retainOnlyVins: activeVins,
       },
       {
         name: "messages",
@@ -264,7 +305,7 @@ function renderEnvFile(profile, selectedVehicles, defaultVehicle) {
     "utf8",
   ).toString("base64");
   const encodedMongoBootstrapConfig = Buffer.from(
-    JSON.stringify(buildMongoBootstrapConfig(process.cwd())),
+    JSON.stringify(buildMongoBootstrapConfig(process.cwd(), activeVehicles)),
     "utf8",
   ).toString("base64");
 

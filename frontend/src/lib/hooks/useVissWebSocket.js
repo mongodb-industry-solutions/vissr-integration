@@ -1,473 +1,317 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from "react";
+import { getOrCreateConnection } from "@/lib/sandbox/connectionStore";
+import { createSubscriptionRegistry } from "@/lib/sandbox/subscriptionRegistry";
+
+const DEFAULT_HOST = "127.0.0.1";
+const EMPTY_MAP = new Map();
 
 /**
- * Custom hook for managing VISS WebSocket connections and message handling.
- * Provides connection management, message sending, and response tracking functionality.
+ * useVissWebSocket
  *
- * @param {string|null} vin - Vehicle VIN bound to the active WebSocket session
- * @param {string} defaultHost - Preferred WebSocket host for the selected vehicle
- * @param {(vin: string | null, message: Object) => Promise<Object>} persistWebSocketMessageAction
- *   Server action used to log raw VISS messages and materialize subscription data.
- * @returns {Object} WebSocket state and control functions
+ * React adapter around the sandbox WebSocket connection store. Mirrors
+ * useVissMqtt: the actual WebSocket and subscription registry live in
+ * module scope, so navigating away from the Sandbox page does not tear
+ * the connection down. Only an explicit `disconnect()` removes the
+ * underlying transport.
  */
 export default function useVissWebSocket(
   vin,
   defaultHost,
   persistWebSocketMessageAction,
 ) {
-  const [hostIP, setHostIP] = useState(defaultHost || "127.0.0.1");
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [connectionError, setConnectionError] = useState(null);
-  const [activeSubscriptions, setActiveSubscriptions] = useState(new Map());
+  const [hostIP, setHostIP] = useState(defaultHost || DEFAULT_HOST);
 
-  const socketRef = useRef(null);
-  const connectedVinRef = useRef(null);
-  const connectedHostRef = useRef(null);
-  const reconnectTargetRef = useRef(null);
-  const warnedVinChangeRef = useRef(null);
-  const warnedMissingVinRef = useRef(false);
+  // The `defaultHost` prop carries the per-vehicle WebSocket host:port
+  // (e.g. "127.0.0.1:9888" for truck1). It can arrive after the first
+  // render — useState's initializer only runs once, so without this sync
+  // we'd keep the stale fallback ("127.0.0.1" → :8888) and connect to
+  // the wrong VISSR instance. Re-sync whenever the prop changes; the
+  // user can still override via the Connect form below.
+  useEffect(() => {
+    if (!defaultHost) return;
+    setHostIP((current) => (current === defaultHost ? current : defaultHost));
+  }, [defaultHost]);
 
-  /**
-   * Adds a new message to the messages array (keeps only last 20 messages)
-   * @param {string} type - Message type ('sent', 'received', 'system', 'error')
-   * @param {string} content - Message content
-   */
-  const addMessage = useCallback((type, content) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setMessages((prev) => {
-      const newMessage = { type, content, timestamp };
-      const updatedMessages = [...prev, newMessage];
-      return updatedMessages.slice(-20); // Keep only last 20 messages (most recent at end)
-    });
-  }, []);
-
-  const persistIncomingMessage = useCallback(
-    async (message, activeVin) => {
-      if (typeof persistWebSocketMessageAction !== "function") {
-        throw new Error("persistWebSocketMessageAction is not available");
-      }
-
-      await persistWebSocketMessageAction(activeVin, message);
-    },
-    [persistWebSocketMessageAction]
+  const entry = useMemo(
+    () =>
+      getOrCreateConnection({
+        protocol: "websocket",
+        vin: vin || null,
+        host: hostIP,
+      }),
+    [vin, hostIP],
   );
 
+  if (!entry.registry) entry.registry = createSubscriptionRegistry();
+  // The persist action is owned by the page and changes identity across
+  // renders; stash the latest one on the entry so the live socket handler
+  // always uses the freshest server action reference.
   useEffect(() => {
-    if (isConnected || !defaultHost) {
-      return;
-    }
+    entry.persistAction = persistWebSocketMessageAction;
+  }, [entry, persistWebSocketMessageAction]);
 
-    setHostIP(defaultHost);
-  }, [defaultHost, isConnected]);
+  const connectionState = useSyncExternalStore(
+    (listener) => entry.subscribe(listener),
+    () => entry.state,
+    () => entry.state,
+  );
 
-  useEffect(() => {
-    if (!isConnected) {
-      warnedVinChangeRef.current = null;
-      return;
-    }
+  const activeSubscriptions = useSyncExternalStore(
+    (listener) => entry.registry.subscribe(listener),
+    () => entry.registry.snapshot(),
+    () => EMPTY_MAP,
+  );
 
-    const nextHost = defaultHost || hostIP;
-    const vinChanged = vin !== connectedVinRef.current;
-    const hostChanged = nextHost !== connectedHostRef.current;
-
-    if (!vinChanged && !hostChanged) {
-      warnedVinChangeRef.current = null;
-      return;
-    }
-
-    const warningKey = `${connectedVinRef.current || "none"}@${
-      connectedHostRef.current || "none"
-    }->${vin || "none"}@${nextHost || "none"}`;
-    if (warnedVinChangeRef.current === warningKey) {
-      return;
-    }
-
-    warnedVinChangeRef.current = warningKey;
-    reconnectTargetRef.current = nextHost;
-    addMessage(
-      "system",
-      `Vehicle selection changed to ${
-        vin || "none"
-      }. Reconnecting WebSocket so status sync follows the active vehicle.`
-    );
-    socketRef.current?.close(1000, "Vehicle selection changed");
-  }, [addMessage, defaultHost, hostIP, isConnected, vin]);
-
-  /**
-   * Connects to the VISS WebSocket server
-   * @param {string} host - Host IP address
-   */
   const connectToHost = useCallback(
     (host) => {
-      if (!host.trim()) {
-        setConnectionError("Please enter a host IP address");
+      const target = (host || "").trim();
+      if (!target) {
+        entry.mutate({ connectionError: "Please enter a host IP address" });
         return;
       }
-
-      setIsConnecting(true);
-      setConnectionError(null);
-      setHostIP(host);
-      connectedVinRef.current = vin || null;
-      connectedHostRef.current = host || null;
-      warnedVinChangeRef.current = null;
-      warnedMissingVinRef.current = false;
-
-      try {
-        // If the host already contains a port, use it directly. Otherwise, default to 8888 for WebSocket.
-        // Also strip any 'ws://' or 'wss://' prefix if the user accidentally included it
-        let cleanHost = host.replace(/^(ws|wss):\/\//i, "");
-        let wsUrl = cleanHost.includes(":") 
-          ? `ws://${cleanHost}` 
-          : `ws://${cleanHost}:8888`;
-        
-        const socket = new WebSocket(wsUrl, "VISS-noenc");
-
-        socket.onopen = () => {
-          setIsConnected(true);
-          setIsConnecting(false);
-          connectedHostRef.current = cleanHost.includes(":")
-            ? cleanHost
-            : `${cleanHost}:8888`;
-          addMessage("system", `Connected to ${wsUrl}`);
-
-          if (connectedVinRef.current) {
-            addMessage(
-              "system",
-              `Vehicle status sync is bound to ${connectedVinRef.current}`
-            );
-          } else {
-            warnedMissingVinRef.current = true;
-            addMessage(
-              "system",
-              "Connected without a selected vehicle. WebSocket messages will be logged, and the connection will refresh automatically when you pick a vehicle."
-            );
-          }
-        };
-
-        socket.onmessage = (event) => {
-          addMessage("received", event.data);
-
-          // Parse message once and use for both MongoDB insertion and subscription tracking
-          try {
-            const parsedMessage = JSON.parse(event.data);
-
-            persistIncomingMessage(
-              parsedMessage,
-              connectedVinRef.current
-            ).catch((error) => {
-              console.error("WebSocket persistence error:", error);
-              addMessage(
-                "error",
-                `Failed to persist WebSocket message: ${error.message}`
-              );
-            });
-
-            if (
-              parsedMessage.action === "subscription" &&
-              parsedMessage.data &&
-              !connectedVinRef.current &&
-              !warnedMissingVinRef.current
-            ) {
-              warnedMissingVinRef.current = true;
-              addMessage(
-                "system",
-                "Skipping vehicle status sync for WebSocket subscription updates because no vehicle was selected when the connection was opened."
-              );
-            }
-
-            // Subscription tracking is driven exclusively by server
-            // acknowledgements so the map mirrors actual server state:
-            //   - register on `subscribe` ack
-            //   - unregister on `unsubscribe` ack
-            // Streaming notifications (`action: "subscription"`) are ignored
-            // here to avoid resurrecting an entry that has just been removed.
-            if (
-              parsedMessage.action === "subscribe" &&
-              parsedMessage.subscriptionId
-            ) {
-              setActiveSubscriptions((prev) => {
-                const newMap = new Map(prev);
-                newMap.set(parsedMessage.subscriptionId, {
-                  requestId: parsedMessage.requestId,
-                  timestamp: new Date().toLocaleTimeString(),
-                });
-                return newMap;
-              });
-            } else if (
-              parsedMessage.action === "unsubscribe" &&
-              parsedMessage.subscriptionId
-            ) {
-              setActiveSubscriptions((prev) => {
-                if (!prev.has(parsedMessage.subscriptionId)) return prev;
-                const newMap = new Map(prev);
-                newMap.delete(parsedMessage.subscriptionId);
-                return newMap;
-              });
-            }
-          } catch (error) {
-            console.error("Failed to parse or store message:", error);
-          }
-        };
-
-        socket.onclose = (event) => {
-          setIsConnected(false);
-          setIsConnecting(false);
-          socketRef.current = null;
-          connectedVinRef.current = null;
-          connectedHostRef.current = null;
-          warnedVinChangeRef.current = null;
-          warnedMissingVinRef.current = false;
-          setActiveSubscriptions(new Map());
-
-          if (event.wasClean) {
-            addMessage("system", "Connection closed");
-          } else {
-            addMessage(
-              "error",
-              `Connection lost: ${event.code} ${
-                event.reason || "Unknown error"
-              }`
-            );
-          }
-        };
-
-        socket.onerror = () => {
-          setIsConnecting(false);
-          setConnectionError(`Failed to connect to ${wsUrl}`);
-          addMessage("error", `Connection error to ${wsUrl}`);
-        };
-
-        socketRef.current = socket;
-      } catch (error) {
-        setIsConnecting(false);
-        setConnectionError(`Connection error: ${error.message}`);
-        addMessage("error", `Connection error: ${error.message}`);
+      setHostIP(target);
+      const targetEntry = getOrCreateConnection({
+        protocol: "websocket",
+        vin: vin || null,
+        host: target,
+      });
+      if (!targetEntry.registry) {
+        targetEntry.registry = createSubscriptionRegistry();
       }
+      targetEntry.persistAction = persistWebSocketMessageAction;
+      openWebSocketTransport(targetEntry);
     },
-    [addMessage, vin, persistIncomingMessage]
+    [entry, persistWebSocketMessageAction, vin],
   );
 
-  useEffect(() => {
-    if (isConnected || isConnecting || !reconnectTargetRef.current) {
-      return;
-    }
-
-    const nextHost = reconnectTargetRef.current;
-    reconnectTargetRef.current = null;
-    connectToHost(nextHost);
-  }, [connectToHost, isConnected, isConnecting]);
-
-  /**
-   * Disconnects from the WebSocket server
-   */
-  const disconnect = useCallback(() => {
-    if (socketRef.current) {
-      reconnectTargetRef.current = null;
-      socketRef.current.close(1000, "User disconnected");
-      socketRef.current = null;
-    }
-    connectedVinRef.current = null;
-    connectedHostRef.current = null;
-    warnedVinChangeRef.current = null;
-    warnedMissingVinRef.current = false;
-    setIsConnected(false);
-    setActiveSubscriptions(new Map()); // Clear subscriptions on disconnect
-  }, []);
-
-  /**
-   * Sends a message through the WebSocket connection
-   * @param {string} message - JSON message to send
-   */
-  const sendMessage = useCallback(
-    (message) => {
-      if (!isConnected || !socketRef.current) {
-        addMessage("error", "Not connected to server");
-        return false;
-      }
-
-      if (!message.trim()) {
-        addMessage("error", "Cannot send empty message");
-        return false;
-      }
-
-      try {
-        // Validate JSON format
-        JSON.parse(message);
-        socketRef.current.send(message);
-        addMessage("sent", message);
-        return true;
-      } catch (error) {
-        addMessage("error", `Invalid JSON: ${error.message}`);
-        return false;
-      }
-    },
-    [isConnected, addMessage]
-  );
-
-  /**
-   * Clears all messages from the display
-   */
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-  }, []);
-
-  /**
-   * Builds VISS command for get operation
-   * @param {string|string[]} paths - Signal path(s)
-   * @param {Object} options - Additional options (filter, authorization, etc.)
-   * @returns {Object} VISS command object
-   */
-  const buildGetCommand = useCallback((paths, options = {}) => {
-    const path = Array.isArray(paths) ? paths[0] : paths;
-    const command = {
-      action: "get",
-      path: path,
-    };
-
-    if (options.includeRequestId !== false) {
-      command.requestId = Date.now().toString();
-    }
-
-    if (options.filter) command.filter = options.filter;
-    if (options.authorization) command.authorization = options.authorization;
-    if (options.dc) command.dc = options.dc;
-
-    return command;
-  }, []);
-
-  /**
-   * Builds VISS command for subscribe operation
-   * @param {string|string[]} paths - Signal path(s)
-   * @param {Object} options - Additional options (filter, authorization, etc.)
-   * @returns {Object} VISS command object
-   */
-  const buildSubscribeCommand = useCallback((paths, options = {}) => {
-    const path = Array.isArray(paths) ? paths[0] : paths;
-    const command = {
-      action: "subscribe",
-      path: path,
-      filter: options.filter || {
-        variant: "timebased",
-        parameter: { period: "10000" },
-      },
-    };
-
-    if (options.includeRequestId !== false) {
-      command.requestId = Date.now().toString();
-    }
-
-    if (options.authorization) command.authorization = options.authorization;
-    if (options.dc) command.dc = options.dc;
-
-    return command;
-  }, []);
-
-  /**
-   * Builds VISS command for unsubscribe operation
-   * @param {string} subscriptionId - Subscription ID to unsubscribe
-   * @returns {Object} VISS command object
-   */
-  const buildUnsubscribeCommand = useCallback(
-    (subscriptionId, options = {}) => {
-      const command = {
-        action: "unsubscribe",
-        subscriptionId: subscriptionId,
-      };
-
-      if (options.includeRequestId !== false) {
-        command.requestId = Date.now().toString();
-      }
-
-      return command;
-    },
-    []
-  );
-
-  /**
-   * Builds VISS command for set operation
-   * @param {string} path - Signal path
-   * @param {string} value - Value to set
-   * @param {Object} options - Additional options
-   * @returns {Object} VISS command object
-   */
-  const buildSetCommand = useCallback((path, value, options = {}) => {
-    const command = {
-      action: "set",
-      path: path,
-      value: value,
-    };
-
-    if (options.includeRequestId !== false) {
-      command.requestId = Date.now().toString();
-    }
-
-    if (options.authorization) command.authorization = options.authorization;
-
-    return command;
-  }, []);
-
-  /**
-   * Sends a pre-built command object
-   * @param {Object} command - VISS command object
-   * @returns {boolean} Success status
-   */
   const sendCommand = useCallback(
-    (command) => {
-      const jsonString = JSON.stringify(command);
-      return sendMessage(jsonString);
-    },
-    [sendMessage]
+    (command) => sendCommandThroughEntry(entry, command),
+    [entry],
   );
 
-  /**
-   * Unsubscribes from a specific subscription
-   * @param {string} subscriptionId - Subscription ID to unsubscribe
-   * @returns {boolean} Success status
-   */
-  const unsubscribeFromId = useCallback(
-    (subscriptionId) => {
-      // The active-subscriptions map is updated only when the server confirms
-      // the unsubscribe via the onmessage handler.
-      const command = buildUnsubscribeCommand(subscriptionId);
-      return sendCommand(command);
+  const sendMessage = useCallback(
+    (rawMessage) => {
+      try {
+        return sendCommandThroughEntry(entry, JSON.parse(rawMessage));
+      } catch (error) {
+        entry.appendMessage("error", `Invalid JSON: ${error.message}`);
+        return false;
+      }
     },
-    [buildUnsubscribeCommand, sendCommand]
+    [entry],
   );
 
-  /**
-   * Changes the host IP address
-   * @param {string} newHost - New host IP
-   */
-  const setHost = useCallback((newHost) => {
-    setHostIP(newHost);
-  }, []);
+  const disconnect = useCallback(() => closeWebSocketTransport(entry), [entry]);
+  const setHost = useCallback((nextHost) => setHostIP(nextHost || DEFAULT_HOST), []);
+  const clearMessages = useCallback(() => entry.clearMessages(), [entry]);
 
   return {
-    // State
     hostIP,
-    isConnected,
-    isConnecting,
-    messages,
-    connectionError,
+    isConnected: connectionState.isConnected,
+    isConnecting: connectionState.isConnecting,
+    messages: connectionState.messages,
+    connectionError: connectionState.connectionError,
     activeSubscriptions,
-
-    // Actions
     connectToHost,
     disconnect,
     sendMessage,
     sendCommand,
     clearMessages,
     setHost,
-    unsubscribeFromId,
-
-    // Command builders
+    unsubscribeFromId: (subscriptionId) =>
+      sendCommand(buildUnsubscribeCommand(subscriptionId)),
     buildGetCommand,
     buildSubscribeCommand,
     buildSetCommand,
     buildUnsubscribeCommand,
   };
+}
+
+function openWebSocketTransport(entry) {
+  if (entry.transport && entry.transport.readyState <= WebSocket.OPEN) {
+    return;
+  }
+
+  const cleanHost = (entry.host || DEFAULT_HOST).replace(/^(ws|wss):\/\//i, "");
+  const wsUrl = cleanHost.includes(":")
+    ? `ws://${cleanHost}`
+    : `ws://${cleanHost}:8888`;
+
+  entry.mutate({ isConnecting: true, connectionError: null });
+
+  let socket;
+  try {
+    socket = new WebSocket(wsUrl, "VISS-noenc");
+  } catch (error) {
+    entry.mutate({
+      isConnecting: false,
+      connectionError: `Connection error: ${error.message}`,
+    });
+    entry.appendMessage("error", `Connection error: ${error.message}`);
+    return;
+  }
+  entry.transport = socket;
+
+  socket.onopen = () => {
+    entry.mutate({ isConnected: true, isConnecting: false });
+    entry.appendMessage("system", `Connected to ${wsUrl}`);
+  };
+
+  socket.onmessage = (event) => {
+    entry.appendMessage("received", event.data);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(event.data);
+    } catch (error) {
+      console.error("Failed to parse WebSocket message:", error);
+      return;
+    }
+
+    const persist = entry.persistAction;
+    if (typeof persist === "function") {
+      persist(entry.vin, parsed).catch((error) => {
+        console.error("WebSocket persistence error:", error);
+        entry.appendMessage(
+          "error",
+          `Failed to persist WebSocket message: ${error.message}`,
+        );
+      });
+    }
+
+    handleSubscriptionMessage(entry, parsed);
+  };
+
+  socket.onclose = (event) => {
+    entry.mutate({ isConnected: false, isConnecting: false });
+    // Intentionally do NOT clear the subscription registry: confirmed
+    // subscriptions stay tracked until they're explicitly unsubscribed
+    // and the unsub is confirmed. Transport hiccups must not silently
+    // drop visible subscriptions.
+    if (event.wasClean) {
+      entry.appendMessage("system", "Connection closed");
+    } else {
+      entry.appendMessage(
+        "error",
+        `Connection lost: ${event.code} ${event.reason || "Unknown error"}`,
+      );
+    }
+  };
+
+  socket.onerror = () => {
+    entry.mutate({
+      isConnecting: false,
+      connectionError: `Failed to connect to ${wsUrl}`,
+    });
+    entry.appendMessage("error", `Connection error to ${wsUrl}`);
+  };
+}
+
+function closeWebSocketTransport(entry) {
+  // Tear down only the transport. The subscription registry survives so
+  // any subscriptions confirmed by the server remain visible (and can be
+  // explicitly unsubscribed via the CommandBuilder once reconnected).
+  const socket = entry.transport;
+  if (socket) {
+    try {
+      socket.close(1000, "User disconnected");
+    } catch (closeError) {
+      console.error("Failed to close WebSocket:", closeError);
+    }
+  }
+  entry.transport = null;
+  entry.mutate({ isConnected: false, isConnecting: false });
+}
+
+function sendCommandThroughEntry(entry, command) {
+  const socket = entry.transport;
+  if (!socket || socket.readyState !== WebSocket.OPEN) {
+    entry.appendMessage("error", "Not connected to server");
+    return false;
+  }
+
+  if (command?.action === "subscribe" && command.requestId) {
+    entry.registry?.trackPending(command.requestId);
+  }
+
+  try {
+    const finalCommand = { ...command };
+    if (!finalCommand.requestId) {
+      finalCommand.requestId = Date.now().toString();
+    }
+    socket.send(JSON.stringify(finalCommand));
+    entry.appendMessage("sent", JSON.stringify(finalCommand));
+    return true;
+  } catch (error) {
+    entry.appendMessage("error", `Failed to send: ${error.message}`);
+    return false;
+  }
+}
+
+function handleSubscriptionMessage(entry, parsed) {
+  const registry = entry.registry;
+  if (!registry || !parsed) return;
+
+  const subId = parsed.subscriptionId;
+  const reqId =
+    parsed.requestId !== undefined && parsed.requestId !== null
+      ? String(parsed.requestId)
+      : null;
+
+  if (parsed.action === "subscribe" && subId) {
+    const pending = registry.consumePending(reqId);
+    registry.reviveTombstone(subId);
+    registry.register(subId, { requestId: pending?.requestId ?? reqId });
+  } else if (parsed.action === "unsubscribe" && subId) {
+    registry.remove(subId);
+  } else if (parsed.action === "subscription" && subId) {
+    registry.register(subId, { requestId: reqId });
+  }
+}
+
+function buildGetCommand(paths, options = {}) {
+  const path = Array.isArray(paths) ? paths[0] : paths;
+  const command = { action: "get", path };
+  if (options.includeRequestId !== false) command.requestId = Date.now().toString();
+  if (options.filter) command.filter = options.filter;
+  if (options.authorization) command.authorization = options.authorization;
+  if (options.dc) command.dc = options.dc;
+  return command;
+}
+
+function buildSubscribeCommand(paths, options = {}) {
+  const path = Array.isArray(paths) ? paths[0] : paths;
+  const command = {
+    action: "subscribe",
+    path,
+    filter: options.filter || {
+      variant: "timebased",
+      parameter: { period: "10000" },
+    },
+  };
+  if (options.includeRequestId !== false) command.requestId = Date.now().toString();
+  if (options.authorization) command.authorization = options.authorization;
+  if (options.dc) command.dc = options.dc;
+  return command;
+}
+
+function buildUnsubscribeCommand(subscriptionId, options = {}) {
+  const command = { action: "unsubscribe", subscriptionId };
+  if (options.includeRequestId !== false) command.requestId = Date.now().toString();
+  return command;
+}
+
+function buildSetCommand(path, value, options = {}) {
+  const command = { action: "set", path, value };
+  if (options.includeRequestId !== false) command.requestId = Date.now().toString();
+  if (options.authorization) command.authorization = options.authorization;
+  return command;
 }

@@ -91,15 +91,30 @@ export async function GET(request) {
               },
             },
           ],
-          onError: (error) => {
-            if (!isClosed) {
-              console.error("Change stream error:", error);
-              sendSSE({
-                type: "error",
-                message: error.message,
-                timestamp: new Date().toISOString(),
-              });
+          onError: async (error) => {
+            if (isClosed) return;
+            console.error("Change stream error:", error);
+            await sendSSE({
+              type: "error",
+              message: error.message,
+              timestamp: new Date().toISOString(),
+            });
+            // Tear the SSE down so the browser EventSource transitions to
+            // CLOSED and the client's reopen logic can cycle a fresh
+            // connection (and a fresh server-side change stream).
+            if (heartbeatInterval) {
+              clearInterval(heartbeatInterval);
+              heartbeatInterval = null;
             }
+            if (cleanup) {
+              try {
+                await cleanup();
+              } catch {
+                // ignore
+              }
+              cleanup = null;
+            }
+            await closeWriter();
           },
         }
       );

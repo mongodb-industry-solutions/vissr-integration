@@ -48,36 +48,58 @@ const createNavigationArrow = (heading = 0, size = 48) => {
   });
 };
 
-// Component to smoothly update marker rotation
-function MarkerRotation({ location, markerRef }) {
-  const prevHeadingRef = useRef(null);
+// GPS heading is unreliable below this speed (km/h); freeze the arrow
+// instead of letting the gauge flick around on a parked vehicle.
+const STATIONARY_SPEED_KPH = 1;
+
+// Component to smoothly update marker rotation.
+//
+// Why a cumulative rotation? CSS interpolates `transform: rotate(...)`
+// between absolute angles, so going from 350° → 10° (a 20° clockwise
+// turn) animates as -340° — the long way around — producing a visible
+// near-full spin. By accumulating the shortest signed delta on every
+// update, the applied angle is monotonic and CSS always animates the
+// short way across the 0/360 seam.
+function MarkerRotation({ heading, isMoving, markerRef }) {
+  const rotationRef = useRef(0);
+  const lastHeadingRef = useRef(null);
   const initializedRef = useRef(false);
 
   useEffect(() => {
-    if (markerRef.current && location?.heading !== undefined) {
-      const markerElement = markerRef.current.getElement();
-      if (markerElement) {
-        const arrowContainer = markerElement.querySelector("div > div");
-        if (arrowContainer) {
-          // On first load, set rotation immediately without transition
-          if (!initializedRef.current) {
-            arrowContainer.style.transition = "none";
-            arrowContainer.style.transform = `rotate(${location.heading}deg)`;
-            // Force reflow to ensure transition is disabled
-            arrowContainer.offsetHeight;
-            // Re-enable transition for future updates
-            arrowContainer.style.transition = "transform 1s linear";
-            initializedRef.current = true;
-            prevHeadingRef.current = location.heading;
-          } else if (prevHeadingRef.current !== location.heading) {
-            // Smoothly rotate the arrow to the new heading
-            arrowContainer.style.transform = `rotate(${location.heading}deg)`;
-            prevHeadingRef.current = location.heading;
-          }
-        }
-      }
+    if (!markerRef.current) return;
+    if (!Number.isFinite(heading)) return;
+
+    const markerElement = markerRef.current.getElement();
+    if (!markerElement) return;
+
+    const arrowContainer = markerElement.querySelector("div > div");
+    if (!arrowContainer) return;
+
+    const normalized = ((heading % 360) + 360) % 360;
+
+    if (!initializedRef.current) {
+      // Snap to the first known heading without animating from 0°.
+      rotationRef.current = normalized;
+      lastHeadingRef.current = normalized;
+      arrowContainer.style.transition = "none";
+      arrowContainer.style.transform = `rotate(${normalized}deg)`;
+      arrowContainer.offsetHeight; // force reflow
+      arrowContainer.style.transition = "transform 1s linear";
+      initializedRef.current = true;
+      return;
     }
-  }, [location?.heading, markerRef]);
+
+    if (isMoving === false) return;
+    if (lastHeadingRef.current === normalized) return;
+
+    // Shortest signed delta in (-180, 180].
+    const delta =
+      ((normalized - lastHeadingRef.current + 540) % 360) - 180;
+
+    rotationRef.current += delta;
+    lastHeadingRef.current = normalized;
+    arrowContainer.style.transform = `rotate(${rotationRef.current}deg)`;
+  }, [heading, isMoving, markerRef]);
 
   return null;
 }
@@ -139,7 +161,7 @@ function MapUpdater({ location, isExpanded, enableMapRotation = false }) {
 
         // Optional: Rotate map to match vehicle heading (true navigation mode)
         // This makes the map behave like GPS navigation apps
-        if (enableMapRotation && location.heading !== undefined) {
+        if (enableMapRotation && Number.isFinite(location.heading)) {
           const mapContainer = map.getContainer();
           mapContainer.style.transform = `rotate(${-location.heading}deg)`;
 
@@ -174,28 +196,30 @@ export default function MapView({
 }) {
   const markerRef = useRef(null);
 
-  // Extract location and heading from vehicle status
+  // Extract location and heading from vehicle status. Heading is left as
+  // `null` when missing/invalid so MarkerRotation can hold the previous
+  // value rather than snapping the arrow back to North on a dropped frame.
   const location = useMemo(() => {
-    if (!vehicleStatus?.Vehicle?.CurrentLocation) {
-      return null;
-    }
+    const currentLocation = vehicleStatus?.Vehicle?.CurrentLocation;
+    if (!currentLocation) return null;
 
-    const currentLocation = vehicleStatus.Vehicle.CurrentLocation;
     const lat = currentLocation.Latitude;
     const lng = currentLocation.Longitude;
-    const heading = currentLocation.Heading || 0; // Vehicle heading in degrees
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
 
-    if (
-      typeof lat === "number" &&
-      typeof lng === "number" &&
-      !isNaN(lat) &&
-      !isNaN(lng)
-    ) {
-      return { lat, lng, heading };
-    }
+    const heading = Number.isFinite(currentLocation.Heading)
+      ? currentLocation.Heading
+      : null;
 
-    return null;
+    return { lat, lng, heading };
   }, [vehicleStatus]);
+
+  // Treat the vehicle as moving when there is no speed signal so we don't
+  // accidentally freeze the arrow when only Speed is missing.
+  const speed = vehicleStatus?.Vehicle?.Speed;
+  const isMoving = Number.isFinite(speed)
+    ? speed > STATIONARY_SPEED_KPH
+    : true;
 
   const usePin = markerStyle === "pin";
 
@@ -271,7 +295,11 @@ export default function MapView({
             />
 
             {!usePin ? (
-              <MarkerRotation location={location} markerRef={markerRef} />
+              <MarkerRotation
+                heading={location.heading}
+                isMoving={isMoving}
+                markerRef={markerRef}
+              />
             ) : null}
 
             <Marker
@@ -286,7 +314,7 @@ export default function MapView({
                   Lat: {location.lat.toFixed(6)}
                   <br />
                   Lng: {location.lng.toFixed(6)}
-                  {!usePin ? (
+                  {!usePin && Number.isFinite(location.heading) ? (
                     <>
                       <br />
                       Heading: {location.heading.toFixed(1)}°

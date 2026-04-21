@@ -1,262 +1,95 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import mqtt from "mqtt";
 import { insertVissMessage } from "@/lib/db/messages";
+import { getOrCreateConnection } from "@/lib/sandbox/connectionStore";
+import { createSubscriptionRegistry } from "@/lib/sandbox/subscriptionRegistry";
+
+const DEFAULT_HOST = "127.0.0.1";
+const EMPTY_MAP = new Map();
 
 /**
- * Custom hook for managing VISS MQTT connections and message handling.
- * Provides connection management, message sending, and response tracking functionality.
+ * useVissMqtt
  *
- * @param {string|null} vin - Vehicle VIN used for MQTT command topics
- * @returns {Object} MQTT state and control functions
+ * React adapter around the sandbox MQTT connection store. The actual
+ * client and subscription registry live in module scope so they survive
+ * navigation: when the user leaves the Sandbox page and comes back, the
+ * existing connection (and its active subscriptions) is reused. The user
+ * must explicitly disconnect to tear it down.
  */
 export default function useVissMqtt(vin) {
-  const [hostIP, setHostIP] = useState("127.0.0.1");
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [connectionError, setConnectionError] = useState(null);
-  const [activeSubscriptions, setActiveSubscriptions] = useState(new Map());
+  const [hostIP, setHostIP] = useState(DEFAULT_HOST);
 
-  const clientRef = useRef(null);
-  const clientIdRef = useRef(`frontend_${Math.random().toString(16).slice(2, 10)}`);
+  const entry = useMemo(
+    () => getOrCreateConnection({ protocol: "mqtt", vin: vin || null, host: hostIP }),
+    [vin, hostIP],
+  );
 
-  /**
-   * Adds a new message to the messages array (keeps only last 20 messages)
-   */
-  const addMessage = useCallback((type, content) => {
-    const timestamp = new Date().toLocaleTimeString();
-    setMessages((prev) => {
-      const newMessage = { type, content, timestamp };
-      const updatedMessages = [...prev, newMessage];
-      return updatedMessages.slice(-20);
-    });
-  }, []);
+  // Make sure every entry has a registry — even before its first connect
+  // — so the UI can subscribe to it without races.
+  if (!entry.registry) entry.registry = createSubscriptionRegistry();
 
-  /**
-   * Connects to the MQTT broker
-   */
+  const connectionState = useSyncExternalStore(
+    (listener) => entry.subscribe(listener),
+    () => entry.state,
+    () => entry.state,
+  );
+
+  const activeSubscriptions = useSyncExternalStore(
+    (listener) => entry.registry.subscribe(listener),
+    () => entry.registry.snapshot(),
+    () => EMPTY_MAP,
+  );
+
   const connectToHost = useCallback(
     (host) => {
-      if (!host.trim()) {
-        setConnectionError("Please enter a host IP address");
+      const target = (host || "").trim();
+      if (!target) {
+        entry.mutate({ connectionError: "Please enter a host IP address" });
         return;
       }
-
-      setIsConnecting(true);
-      setConnectionError(null);
-      setHostIP(host);
-
-      try {
-        let cleanHost = host.replace(/^(ws|wss):\/\//i, "").replace(/:\d+$/, "");
-        const wsUrl = `ws://${cleanHost}:9001`;
-
-        const client = mqtt.connect(wsUrl);
-
-        client.on("connect", () => {
-          setIsConnected(true);
-          setIsConnecting(false);
-          addMessage("system", `Connected to MQTT at ${wsUrl}`);
-
-          // Subscribe to our specific response topic (and quoted variant due to VISSR bug)
-          const responseTopic = `frontend/responses/${clientIdRef.current}`;
-          client.subscribe([responseTopic, `#`], (err) => {
-            if (err) {
-              console.error("Subscription error:", err);
-            }
-          });
-        });
-
-        client.on("message", (topic, message) => {
-          const payloadString = message.toString();
-          
-          const cleanTopic = topic.replace(/"/g, '');
-          // Filter out irrelevant messages if we received something unexpected
-          if (!cleanTopic.startsWith(`frontend/responses/${clientIdRef.current}`)) {
-            return;
-          }
-
-          addMessage("received", payloadString);
-
-          try {
-            const parsedMessage = JSON.parse(payloadString);
-
-            // Insert to MongoDB
-            if (typeof insertVissMessage === "function") {
-              insertVissMessage(parsedMessage).catch((error) => {
-                console.error("MongoDB insertion error:", error);
-              });
-            }
-
-            // Subscription tracking is driven exclusively by server
-            // acknowledgements so the map mirrors actual server state:
-            //   - register on `subscribe` ack
-            //   - unregister on `unsubscribe` ack
-            // Streaming notifications (`action: "subscription"`) are ignored
-            // here to avoid resurrecting an entry that has just been removed.
-            if (
-              parsedMessage.action === "subscribe" &&
-              parsedMessage.subscriptionId
-            ) {
-              setActiveSubscriptions((prev) => {
-                const newMap = new Map(prev);
-                newMap.set(parsedMessage.subscriptionId, {
-                  requestId: parsedMessage.requestId,
-                  timestamp: new Date().toLocaleTimeString(),
-                });
-                return newMap;
-              });
-            } else if (
-              parsedMessage.action === "unsubscribe" &&
-              parsedMessage.subscriptionId
-            ) {
-              setActiveSubscriptions((prev) => {
-                if (!prev.has(parsedMessage.subscriptionId)) return prev;
-                const newMap = new Map(prev);
-                newMap.delete(parsedMessage.subscriptionId);
-                return newMap;
-              });
-            }
-          } catch (error) {
-            console.error("Failed to parse message:", error);
-          }
-        });
-
-        client.on("close", () => {
-          setIsConnected(false);
-          setIsConnecting(false);
-          addMessage("system", "Connection closed");
-        });
-
-        client.on("error", (err) => {
-          setIsConnecting(false);
-          setConnectionError(`MQTT error: ${err.message}`);
-          addMessage("error", `MQTT error: ${err.message}`);
-        });
-
-        clientRef.current = client;
-      } catch (error) {
-        setIsConnecting(false);
-        setConnectionError(`Connection error: ${error.message}`);
-        addMessage("error", `Connection error: ${error.message}`);
+      setHostIP(target);
+      const targetEntry = getOrCreateConnection({
+        protocol: "mqtt",
+        vin: vin || null,
+        host: target,
+      });
+      if (!targetEntry.registry) {
+        targetEntry.registry = createSubscriptionRegistry();
       }
+      openMqttTransport(targetEntry);
     },
-    [addMessage]
+    [entry, vin],
   );
-
-  const disconnect = useCallback(() => {
-    if (clientRef.current) {
-      clientRef.current.end();
-      clientRef.current = null;
-    }
-    setIsConnected(false);
-    setActiveSubscriptions(new Map());
-  }, []);
-
-  const sendMessage = useCallback(
-    (message) => {
-      if (!isConnected || !clientRef.current) {
-        addMessage("error", "Not connected to server");
-        return false;
-      }
-
-      if (!message.trim()) {
-        addMessage("error", "Cannot send empty message");
-        return false;
-      }
-
-      if (!vin) {
-        addMessage("error", "Select a vehicle before sending MQTT commands");
-        return false;
-      }
-
-      try {
-        const parsedCommand = JSON.parse(message);
-        const payload = {
-          topic: `frontend/responses/${clientIdRef.current}`,
-          request: parsedCommand,
-        };
-
-        clientRef.current.publish(`/${vin}/Vehicle`, JSON.stringify(payload));
-        addMessage("sent", message); // Showing the original command sent, not the wrapped payload
-        return true;
-      } catch (error) {
-        addMessage("error", `Invalid JSON: ${error.message}`);
-        return false;
-      }
-    },
-    [isConnected, addMessage, vin]
-  );
-
-  const clearMessages = useCallback(() => {
-    setMessages([]);
-  }, []);
-
-  const buildGetCommand = useCallback((paths, options = {}) => {
-    const path = Array.isArray(paths) ? paths[0] : paths;
-    const command = { action: "get", path: path };
-    if (options.includeRequestId !== false) command.requestId = Date.now().toString();
-    if (options.filter) command.filter = options.filter;
-    if (options.authorization) command.authorization = options.authorization;
-    if (options.dc) command.dc = options.dc;
-    return command;
-  }, []);
-
-  const buildSubscribeCommand = useCallback((paths, options = {}) => {
-    const path = Array.isArray(paths) ? paths[0] : paths;
-    const command = {
-      action: "subscribe",
-      path: path,
-      filter: options.filter || { variant: "timebased", parameter: { period: "10000" } },
-    };
-    if (options.includeRequestId !== false) command.requestId = Date.now().toString();
-    if (options.authorization) command.authorization = options.authorization;
-    if (options.dc) command.dc = options.dc;
-    return command;
-  }, []);
-
-  const buildUnsubscribeCommand = useCallback((subscriptionId, options = {}) => {
-    const command = { action: "unsubscribe", subscriptionId: subscriptionId };
-    if (options.includeRequestId !== false) command.requestId = Date.now().toString();
-    return command;
-  }, []);
-
-  const buildSetCommand = useCallback((path, value, options = {}) => {
-    const command = { action: "set", path: path, value: value };
-    if (options.includeRequestId !== false) command.requestId = Date.now().toString();
-    if (options.authorization) command.authorization = options.authorization;
-    return command;
-  }, []);
 
   const sendCommand = useCallback(
-    (command) => {
-      const jsonString = JSON.stringify(command);
-      return sendMessage(jsonString);
-    },
-    [sendMessage]
+    (command) => sendCommandThroughEntry(entry, command),
+    [entry],
   );
 
-  const unsubscribeFromId = useCallback(
-    (subscriptionId) => {
-      // The active-subscriptions map is updated only when the server confirms
-      // the unsubscribe via the onmessage handler.
-      const command = buildUnsubscribeCommand(subscriptionId);
-      return sendCommand(command);
+  const sendMessage = useCallback(
+    (rawMessage) => {
+      try {
+        return sendCommandThroughEntry(entry, JSON.parse(rawMessage));
+      } catch (error) {
+        entry.appendMessage("error", `Invalid JSON: ${error.message}`);
+        return false;
+      }
     },
-    [buildUnsubscribeCommand, sendCommand]
+    [entry],
   );
 
-  const setHost = useCallback((newHost) => {
-    setHostIP(newHost);
-  }, []);
+  const disconnect = useCallback(() => closeMqttTransport(entry), [entry]);
+  const setHost = useCallback((nextHost) => setHostIP(nextHost || DEFAULT_HOST), []);
+  const clearMessages = useCallback(() => entry.clearMessages(), [entry]);
 
   return {
     hostIP,
-    isConnected,
-    isConnecting,
-    messages,
-    connectionError,
+    isConnected: connectionState.isConnected,
+    isConnecting: connectionState.isConnecting,
+    messages: connectionState.messages,
+    connectionError: connectionState.connectionError,
     activeSubscriptions,
     connectToHost,
     disconnect,
@@ -264,10 +97,202 @@ export default function useVissMqtt(vin) {
     sendCommand,
     clearMessages,
     setHost,
-    unsubscribeFromId,
+    unsubscribeFromId: (subscriptionId) =>
+      sendCommand(buildUnsubscribeCommand(subscriptionId)),
     buildGetCommand,
     buildSubscribeCommand,
     buildSetCommand,
     buildUnsubscribeCommand,
   };
+}
+
+function openMqttTransport(entry) {
+  if (entry.transport?.connected || entry.state.isConnecting) return;
+
+  const cleanHost = (entry.host || DEFAULT_HOST)
+    .replace(/^(ws|wss):\/\//i, "")
+    .replace(/:\d+$/, "");
+  const wsUrl = `ws://${cleanHost}:9001`;
+  const clientId = `sandbox_${Math.random().toString(16).slice(2, 10)}`;
+  // Embed the bound VIN in the response topic so the bridge can recover
+  // VIN attribution from the topic alone — the same convention the
+  // global connection uses for its multi-VIN client. Matches the
+  // bridge's extractVinFromResponseTopic regex.
+  const vinSegment = entry.vin || "_";
+  const responseTopic = `frontend/responses/${clientId}/${vinSegment}`;
+  const responseTopicQuoted = `"${responseTopic}"`;
+
+  entry.mutate({ isConnecting: true, connectionError: null });
+  entry.responseTopic = responseTopic;
+  entry.clientId = clientId;
+
+  const client = mqtt.connect(wsUrl, { clientId });
+  entry.transport = client;
+
+  client.on("connect", () => {
+    entry.mutate({ isConnected: true, isConnecting: false });
+    entry.appendMessage("system", `Connected to MQTT at ${wsUrl}`);
+    client.subscribe([responseTopic, responseTopicQuoted], (err) => {
+      if (err) console.error("Subscription error:", err);
+    });
+  });
+
+  client.on("message", (topic, message) => {
+    const cleanTopic = topic.replace(/"/g, "");
+    if (cleanTopic !== responseTopic) return;
+
+    const payloadString = message.toString();
+    entry.appendMessage("received", payloadString);
+
+    let parsed = null;
+    try {
+      parsed = JSON.parse(payloadString);
+    } catch (error) {
+      console.error("Failed to parse MQTT message:", error);
+      return;
+    }
+
+    if (typeof insertVissMessage === "function") {
+      insertVissMessage(parsed).catch((error) =>
+        console.error("MongoDB insertion error:", error),
+      );
+    }
+
+    handleSubscriptionMessage(entry, parsed);
+  });
+
+  client.on("close", () => {
+    entry.mutate({ isConnected: false, isConnecting: false });
+    entry.appendMessage("system", "Connection closed");
+    // Intentionally do NOT clear the subscription registry: the user
+    // requirement is that confirmed subscriptions stay tracked until they
+    // are explicitly unsubscribed and the unsub is confirmed. Transport
+    // hiccups must not silently drop visible subscriptions.
+  });
+
+  client.on("error", (err) => {
+    entry.mutate({
+      isConnecting: false,
+      connectionError: `MQTT error: ${err.message}`,
+    });
+    entry.appendMessage("error", `MQTT error: ${err.message}`);
+  });
+}
+
+function closeMqttTransport(entry) {
+  // Tear down only the transport. The subscription registry survives so
+  // any subscriptions confirmed by the broker remain visible (and can be
+  // explicitly unsubscribed via the CommandBuilder once reconnected).
+  const client = entry.transport;
+  if (client) {
+    try {
+      client.end();
+    } catch (closeError) {
+      console.error("Failed to close MQTT client:", closeError);
+    }
+  }
+  entry.transport = null;
+  entry.mutate({ isConnected: false, isConnecting: false });
+}
+
+function publishToVin(entry, command) {
+  const client = entry.transport;
+  if (!client?.connected || !entry.vin) return null;
+  const finalCommand = { ...command };
+  if (!finalCommand.requestId) {
+    finalCommand.requestId = Date.now().toString();
+  }
+  const payload = { topic: entry.responseTopic, request: finalCommand };
+  client.publish(`/${entry.vin}/Vehicle`, JSON.stringify(payload));
+  return finalCommand.requestId;
+}
+
+function sendCommandThroughEntry(entry, command) {
+  if (!entry.transport?.connected) {
+    entry.appendMessage("error", "Not connected to server");
+    return false;
+  }
+  if (!entry.vin) {
+    entry.appendMessage("error", "Select a vehicle before sending MQTT commands");
+    return false;
+  }
+
+  if (command?.action === "subscribe" && command.requestId) {
+    entry.registry?.trackPending(command.requestId);
+  }
+
+  try {
+    const requestId = publishToVin(entry, command);
+    if (!requestId) {
+      entry.appendMessage("error", "Failed to publish MQTT command");
+      return false;
+    }
+    entry.appendMessage("sent", JSON.stringify({ ...command, requestId }));
+    return true;
+  } catch (error) {
+    entry.appendMessage("error", `Failed to publish MQTT command: ${error.message}`);
+    return false;
+  }
+}
+
+function handleSubscriptionMessage(entry, parsed) {
+  const registry = entry.registry;
+  if (!registry || !parsed) return;
+
+  const subId = parsed.subscriptionId;
+  const reqId =
+    parsed.requestId !== undefined && parsed.requestId !== null
+      ? String(parsed.requestId)
+      : null;
+
+  if (parsed.action === "subscribe" && subId) {
+    const pending = registry.consumePending(reqId);
+    registry.reviveTombstone(subId);
+    registry.register(subId, { requestId: pending?.requestId ?? reqId });
+  } else if (parsed.action === "unsubscribe" && subId) {
+    registry.remove(subId);
+  } else if (parsed.action === "subscription" && subId) {
+    // Late-bind streaming notifications so the user can still see (and
+    // cancel) subscriptions whose subscribe ack we missed.
+    registry.register(subId, { requestId: reqId });
+  }
+}
+
+function buildGetCommand(paths, options = {}) {
+  const path = Array.isArray(paths) ? paths[0] : paths;
+  const command = { action: "get", path };
+  if (options.includeRequestId !== false) command.requestId = Date.now().toString();
+  if (options.filter) command.filter = options.filter;
+  if (options.authorization) command.authorization = options.authorization;
+  if (options.dc) command.dc = options.dc;
+  return command;
+}
+
+function buildSubscribeCommand(paths, options = {}) {
+  const path = Array.isArray(paths) ? paths[0] : paths;
+  const command = {
+    action: "subscribe",
+    path,
+    filter: options.filter || {
+      variant: "timebased",
+      parameter: { period: "10000" },
+    },
+  };
+  if (options.includeRequestId !== false) command.requestId = Date.now().toString();
+  if (options.authorization) command.authorization = options.authorization;
+  if (options.dc) command.dc = options.dc;
+  return command;
+}
+
+function buildUnsubscribeCommand(subscriptionId, options = {}) {
+  const command = { action: "unsubscribe", subscriptionId };
+  if (options.includeRequestId !== false) command.requestId = Date.now().toString();
+  return command;
+}
+
+function buildSetCommand(path, value, options = {}) {
+  const command = { action: "set", path, value };
+  if (options.includeRequestId !== false) command.requestId = Date.now().toString();
+  if (options.authorization) command.authorization = options.authorization;
+  return command;
 }

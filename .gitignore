@@ -55,3 +55,8 @@ next-env.d.ts
 
 # VISSR reference
 /vissr/
+
+# Local-only one-off generator scripts. The generated artifacts (truck feeds,
+# frontend VSS JSONs, etc.) are committed; the scripts themselves are not.
+# Runtime-config generation lives in infra/ because it is part of the build.
+/scripts/

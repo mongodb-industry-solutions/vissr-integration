@@ -4,19 +4,42 @@ import {
   createContext,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import {
   ALERT_SEVERITY,
+  createLiveFaultAlert,
   createMockIncident,
+  LIVE_FAULT_TYPES,
 } from "@/lib/mock/incidents";
 import { useFleetData } from "@/lib/context/FleetDataContext";
 import { useGlobalConnection } from "@/lib/context/GlobalConnectionContext";
+import { readWheelReading } from "@/lib/vss/wheelPositions";
 
 const DRIVER_WARNING_PATH = "Vehicle.Cabin.Infotainment.DriverMessage.Warning";
 const DRIVER_NOTIFICATION_PATH =
   "Vehicle.Cabin.Infotainment.DriverMessage.Notification";
+
+const LIVE_FAULT_DEFS = [
+  {
+    type: LIVE_FAULT_TYPES.LOW_PRESSURE,
+    isActive: (reading) => reading.isPressureLow === true,
+    valueFor: (reading) => reading.pressure,
+  },
+  {
+    type: LIVE_FAULT_TYPES.HIGH_TEMPERATURE,
+    isActive: (reading) => reading.isTemperatureHigh === true,
+    valueFor: (reading) => reading.temperature,
+  },
+  {
+    type: LIVE_FAULT_TYPES.HIGH_BRAKE_TEMPERATURE,
+    isActive: (reading) => reading.isBrakeTemperatureHigh === true,
+    valueFor: (reading) => reading.brakeTemperature,
+  },
+];
 
 const AlertsContext = createContext(null);
 
@@ -27,9 +50,10 @@ function pathForSeverity(severity) {
 }
 
 export function AlertsProvider({ children }) {
-  const { vehicles } = useFleetData();
+  const { vehicles, statuses, wheelsByVin } = useFleetData();
   const { sendSetCommand } = useGlobalConnection();
   const [alerts, setAlerts] = useState([]);
+  const lastFaultRef = useRef(new Map());
 
   const updateAlert = useCallback((id, patch) => {
     setAlerts((current) =>
@@ -140,6 +164,88 @@ export function AlertsProvider({ children }) {
     },
     [vehicles],
   );
+
+  // Live fault detector: watches the SSE-driven `statuses` cache and the
+  // VSS-derived wheel layouts. On a `false -> true` transition for any of
+  // the supported fault flags, push a pending alert to the queue. On the
+  // reverse `true -> false` transition we drop any still-open (pending or
+  // sent) alert for that vin/wheel/type so the queue mirrors the truck's
+  // current condition rather than accumulating stale incidents.
+  // Deduped by vin::wheelId::type so flapping flags don't spam new
+  // alerts while the fault remains active.
+  useEffect(() => {
+    if (!Array.isArray(vehicles) || vehicles.length === 0) return;
+    if (!statuses || !wheelsByVin) return;
+
+    const lastFault = lastFaultRef.current;
+    const newAlerts = [];
+    const resolvedKeys = new Set();
+
+    for (const vehicle of vehicles) {
+      const vin = vehicle?.vin;
+      if (!vin) continue;
+      const status = statuses[vin];
+      const wheels = wheelsByVin[vin];
+      if (!status || !Array.isArray(wheels) || wheels.length === 0) continue;
+
+      for (const wheel of wheels) {
+        const reading = readWheelReading(status, wheel);
+
+        for (const fault of LIVE_FAULT_DEFS) {
+          const isActive = fault.isActive(reading);
+          if (typeof isActive !== "boolean") continue;
+          const faultKey = `${vin}::${wheel.id}::${fault.type}`;
+          const wasActive = lastFault.get(faultKey) === true;
+          lastFault.set(faultKey, isActive);
+
+          if (isActive) {
+            if (wasActive) continue;
+
+            // Skip if a pending or sent alert already exists for the same
+            // vehicle + wheel + fault type so flapping flags don't spam.
+            const alreadyOpen = alerts.some(
+              (alert) =>
+                alert.vin === vin &&
+                alert.type === fault.type &&
+                alert.wheelId === wheel.id &&
+                (alert.status === "pending" || alert.status === "sent"),
+            );
+            if (alreadyOpen) continue;
+
+            const newAlert = createLiveFaultAlert({
+              vehicle,
+              wheel,
+              type: fault.type,
+              value: fault.valueFor(reading),
+            });
+            if (newAlert) newAlerts.push(newAlert);
+          } else if (wasActive) {
+            // Fault just cleared — remember the key so we can drop any
+            // still-open alert for this vin/wheel/type below.
+            resolvedKeys.add(faultKey);
+          }
+        }
+      }
+    }
+
+    if (resolvedKeys.size > 0) {
+      setAlerts((current) =>
+        current.filter((alert) => {
+          if (alert.status !== "pending" && alert.status !== "sent") {
+            return true;
+          }
+          if (!alert.type || !alert.vin || !alert.wheelId) return true;
+          return !resolvedKeys.has(
+            `${alert.vin}::${alert.wheelId}::${alert.type}`,
+          );
+        }),
+      );
+    }
+
+    if (newAlerts.length > 0) {
+      setAlerts((current) => [...newAlerts, ...current]);
+    }
+  }, [vehicles, statuses, wheelsByVin, alerts]);
 
   const value = useMemo(() => {
     const pendingAlerts = alerts.filter((alert) => alert.status === "pending");

@@ -5,7 +5,7 @@ NUM_VEHICLES ?= 1
 GENERATED_DIR := .generated
 RUNTIME_ENV_FILE := $(GENERATED_DIR)/runtime.env
 TRUCK_COMPOSE_FILE := $(GENERATED_DIR)/docker-compose.trucks.generated.yml
-GENERATOR := node scripts/generate-runtime-config.mjs
+GENERATOR := node infra/generate-runtime-config.mjs
 
 COMPOSE_FILES := -f docker-compose.yml -f $(TRUCK_COMPOSE_FILE)
 

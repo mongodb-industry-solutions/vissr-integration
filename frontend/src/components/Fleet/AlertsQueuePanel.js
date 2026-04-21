@@ -179,7 +179,42 @@ export default function AlertsQueuePanel({ activeVin }) {
   const targetVin = activeVin || vehicles[0]?.vin;
 
   return (
-    <Card className="flex flex-col min-h-0 h-full p-4">
+    <Card className="alerts-queue-card flex flex-col min-h-0 h-full overflow-hidden p-4">
+      {/*
+        Leafygreen <Tabs> renders its own panel container that doesn't
+        forward flex/min-h-0 sizing, which causes the tab body to grow
+        outside its parent card and eat the scrollbar. This <style> block
+        targets the leafygreen-managed elements via their data-lgid
+        attributes so each tab panel becomes a proper flex column with
+        a single scrollable child. Scoped under .alerts-queue-card so it
+        doesn't leak into other Tabs instances.
+      */}
+      <style>{`
+        .alerts-queue-card [data-lgid="lg-tabs"] {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+        .alerts-queue-card [data-lgid="lg-tabs-tab_panels"] {
+          flex: 1 1 0;
+          min-height: 0;
+          position: relative;
+        }
+        .alerts-queue-card [data-lgid="lg-tabs-tab_panels"] > div:has([role="tabpanel"]) {
+          position: absolute;
+          inset: 0;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+        }
+        .alerts-queue-card [data-lgid="lg-tabs-tab_panels"] [role="tabpanel"] {
+          flex: 1 1 0;
+          min-height: 0;
+          display: flex;
+          flex-direction: column;
+        }
+      `}</style>
+
       <div className="flex items-start justify-between gap-3 flex-shrink-0">
         <div className="min-w-0 flex-1">
           <H3 className="!text-base">Alerts queue</H3>
@@ -218,7 +253,7 @@ export default function AlertsQueuePanel({ activeVin }) {
         aria-label="alerts tabs"
         selected={tab}
         setSelected={setTab}
-        className="mt-3 flex flex-col min-h-0 flex-1"
+        className="mt-3 min-h-0 flex-1"
       >
         <Tab name={`Pending (${pendingAlerts.length})`}>
           <div className="flex-1 min-h-0 overflow-y-auto space-y-2 py-2 pr-1">

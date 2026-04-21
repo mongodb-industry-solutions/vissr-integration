@@ -25,6 +25,7 @@
       "label": "Truck 1",
       "vin": "1FABP34W72K012345",
       "trailerVin": "3FABP34W72K234567",
+      "trailerType": "FULL_TRAILER",
       "assets": {
         "vissHim": "truck1/viss.him",
         "udsRegistration": "truck1/uds-registration.json",
@@ -51,6 +52,7 @@
       "label": "Truck 2",
       "vin": "2FABP34W72K123456",
       "trailerVin": "4FABP34W72K345678",
+      "trailerType": "SEMI_TRAILER",
       "assets": {
         "vissHim": "truck2/viss.him",
         "udsRegistration": "truck2/uds-registration.json",

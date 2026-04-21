@@ -3,9 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "@leafygreen-ui/icon";
-import Badge from "@leafygreen-ui/badge";
 import ConnectionStatusPill from "./ConnectionStatusPill";
-import { useAlerts } from "@/lib/context/AlertsContext";
 import { useBrand } from "@/lib/context/BrandContext";
 
 const NAV_ITEMS = [
@@ -24,9 +22,7 @@ function isActive(pathname, href) {
 
 export default function Header({ onOpenConnection }) {
   const pathname = usePathname();
-  const { pendingAlerts, sentAlerts } = useAlerts();
   const { title } = useBrand();
-  const activeAlertCount = pendingAlerts.length + sentAlerts.length;
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur">
@@ -55,11 +51,6 @@ export default function Header({ onOpenConnection }) {
                 }`}
               >
                 {item.label}
-                {item.href === "/fleet" && activeAlertCount > 0 ? (
-                  <span className="ml-2">
-                    <Badge variant="red">{activeAlertCount}</Badge>
-                  </span>
-                ) : null}
               </Link>
             );
           })}
